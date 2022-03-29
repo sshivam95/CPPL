@@ -1,0 +1,229 @@
+{	
+	"$schema": "DOT",
+	"$id": "CPPLParameterSchema",
+
+	"type": "object",
+	"properties": {
+		"paramtype": {
+			"type": "string",
+			"enum": ["categorical", "continuous", "discrete", "binary"],
+			"description": "Declare if the parameter is categorical, continuous, discrete or binary"
+
+		}
+
+	},
+	"required": ["paramtype"],
+
+
+	"allOf": [
+	{
+			
+
+	"if": {
+		"properties": {"paramtype": {"const": "categorical"}}
+	},
+	"then": {
+	"allOf": [
+	{
+		"if": {
+			"properties": {"valtype": {"const": "str"}}
+		},
+		"then": { 
+			"properties": {
+				"Values": {
+					"type": "array",
+					"description": "Set the possible parameter values as strings in an array"
+				},
+				"default": {
+					"type": "string",
+					"description": "Set the default value of this parameter"
+				}
+			}
+		}
+	},
+
+
+	{
+		"if": {
+			"properties": {"valtype": {"const": "int"}},
+		"then": {
+			"properties": {
+				"minval": {
+					"type": "number",
+					"description": "Lowest value the categorical parameter can take"
+				},
+				"maxval": {
+					"type": "number",
+					"description": "Highest value the categorical parameter can take"
+				},
+				"default": {
+					"type": "number",
+					"description": "Set the default value of this parameter"
+				}
+			}
+		}		
+	}
+	}
+	],
+
+			"properties": {
+				"flag": {
+					"type": "boolean",
+					"description": "set to true if input of this parameter is only the value (e.g. for glucose or cadical [e.g. in glucose << -forceunsat >>])"
+				},
+				"valtype": {
+					"type": "string",
+					"enum": ["str","int"],
+					"description": "Are the values of the categorical parameter strings (set to str) or integers (set to int)?"
+				}
+			},
+			"required": ["valtype"]
+		}
+	},
+
+
+
+
+
+	{
+		"if": {
+			"properties": {"paramtype": {"const": "continuous"}}
+		},
+		"then": {
+			"properties": {
+				"minval": {
+					"type": "number",
+					"description": "Lowest value the continuous parameter can take"
+				},
+				"maxval": {
+					"type": "number",
+					"description": "Highest value the continuous parameter can take"
+				},
+				"default": {
+					"type": "number",
+					"description": "Set the default value of this parameter"
+				},
+				"splitbydefault": {
+					"type": "boolean",
+					"description": "Set to true if you want the range of the log distribution to be split by the default value. Lower range becomes uniformly distributed. logonpos and probabpos can be used for upper range."
+				},
+				"distribution": {
+					"enum": ["log"],
+					"description": "Set the distribution of the random generation of this parameter to << uniform >> or << log >>"
+				},
+		        "if": {
+			        "properties": {"distribution": {"const": "log"}}
+		        },
+		        "then": {
+			    "properties": {
+					"includezero": {
+						"type": "boolean",
+						"description": "Set to true if you want to include the value zero into the parameter generation while using log distribution"
+					},
+					"probabilityzero": {
+						"type": "number",
+						"description": "If the value zero into the parameter generation while using log distribution is included you can set a \n number between zero and one for the probability of zero randomly accuring"
+					},
+					"logonpos": {
+						"type": "boolean",
+						"description": "If log is set, set to true if log distribution should be on the positive part of the parameter range, if minval is negative"
+					},
+					"logonneg": {
+						"type": "boolean",
+						"description": "If log is set, set to true if log distribution should be on the negative part of the parameter range, if minval is negative"
+					},
+					"probabpos": {
+						"type": "number",
+						"description": "Set value between zero and one for probability of the positive side of the parameter range, if minval is negative"
+					},
+					"probabneg": {
+						"type": "number",
+						"description": "Set value between zero and one for probability of the negative side of the parameter range, if minval is negative"
+					}	
+				}
+				}						
+			},
+			"required": ["minval","maxval"]
+		}
+	},
+
+
+	{
+		"if": {
+			"properties": {"paramtype": {"const": "discrete"}}
+		},
+		"then": {
+			"properties": {
+				"minval": {
+					"type": "number",
+					"description": "Lowest value the continuous parameter can take"
+				},
+				"maxval": {
+					"type": "number",
+					"description": "Highest value the continuous parameter can take"
+				},
+				"default": {
+					"type": "number",
+					"description": "Set the default value of this parameter"
+				},
+				"splitbydefault": {
+					"type": "boolean",
+					"description": "Set to true if you want the range of the log distribution to be split by the default value"
+				},
+				"distribution": {
+					"enum": ["log"],
+					"description": "Set the distribution of the random generation of this parameter to << uniform >> or << log >>"
+				},
+		        "if": {
+			        "properties": {"distribution": {"const": "log"}}
+		        },
+		        "then": {
+			    "properties": {
+					"includezero": {
+						"type": "boolean",
+						"description": "Set to true if you want to include the value zero into the parameter generation while using log distribution"
+					},
+					"probabilityzero": {
+						"type": "number",
+						"description": "If the value zero into the parameter generation while using log distribution is included you can set a\n number between zero and one for the probability of zero randomly accuring"
+					},
+					"logonpos": {
+						"type": "boolean",
+						"description": "If log is set, set to true if log distribution should be on the positive part of the parameter range, if minval is negative"
+					},
+					"logonneg": {
+						"type": "boolean",
+						"description": "If log is set, set to true if log distribution should be on the negative part of the parameter range, if minval is negative"
+					},
+					"probabpos": {
+						"type": "number",
+						"description": "Set value between zero and one for probability of the positive side of the parameter range, if minval is negative"
+					},
+					"probabneg": {
+						"type": "number",
+						"description": "Set value between zero and one for probability of the negative side of the parameter range, if minval is negative"
+					}	
+				}
+				}						
+			},
+			"required": ["minval","maxval"]
+		}
+	},
+
+
+	{
+		"if": {
+			"properties": {"paramtype": {"const": "binary"}}
+		},
+		"then": {
+			"properties": {
+				"default": {
+					"type": "number",
+					"description": "Set the default value of the binary parameter (0 or 1)"
+				}
+			}
+		}
+
+	}
+    ]
+}
