@@ -351,7 +351,7 @@ def contender_list_including_generated(
     for i in range(n):
         v_hat[i] = np.exp(np.inner(theta_bar, X_t[i, :]))
 
-    S_t = (-(v_hat)).argsort()[0:k]
+    S_t = (-v_hat).argsort()[0:k]
 
     for i in range(k):
         contender_list.append("contender_" + str(S_t[i]))
@@ -515,13 +515,13 @@ def update(winner, theta_hat, theta_bar, S_t, X_t, gamma_1, t, alpha):
 
 
 def get_features(directory, filename):
-    with open(f"Instance_Features/Features_{directory}.csv", "r") as csvFile:
+    with open(f"Instance_Features/Features_{directory}_5000.csv", "r") as csvFile:
         reader = csv.reader(csvFile)
+        next(reader)
         for row in reader:
-            row_list = row[0].split()
+            row_list = row[1:]
+            features = [float(j) for j in row_list]
             if os.path.basename(row_list[0]) == filename:
-                row_list.pop(0)
-                features = [float(j) for j in row_list]
                 csvFile.close()
                 break
     return np.asarray(features)
