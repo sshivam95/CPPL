@@ -1,0 +1,101 @@
+<<Original SAT features>>
+
+nvarsOrig: Number of variables in original formula
+nclausesOrig: number of clauses in original formula 
+nvars: number of variables after simplification 
+nclauses: number of clauses after simplification
+reducedVars: ratio of variables reduced by simplification
+reducedClauses: ratio of clauses reduced by simplification
+Pre-featuretime: time needed to prepare feature computation
+vars-clauses-ratio: ratio of variables to clauses after simplification
+POSNEG-RATIO-CLAUSE-mean: Ratio of positive to negative literals in each clause mean
+POSNEG-RATIO-CLAUSE-coeff-variation: Ratio of positive to negative literals in each clause standard deviation
+POSNEG-RATIO-CLAUSE-min: Ratio of positive to negative literals in each clause min
+POSNEG-RATIO-CLAUSE-max: Ratio of positive to negative literals in each clause max
+POSNEG-RATIO-CLAUSE-entropy: Ratio of positive to negative literals in each clause entropy
+VCG-CLAUSE-mean: Variable-Clauses Graph Clause Node mean
+VCG-CLAUSE-coeff-variation: Variable-Clauses Graph Clause Node standard deviation
+VCG-CLAUSE-min: Variable-Clauses Graph Clause Node min
+VCG-CLAUSE-max: Variable-Clauses Graph Clause Node max
+VCG-CLAUSE-entropy: Variable-Clauses Graph Clause Node entropy
+UNARY: Fraction of unary clauses
+BINARY+: Fraction of binary clauses
+TRINARY+: Fraction of trinary clauses
+Basic-featuretime: Time needed to compute Problem size features
+VCG-VAR-mean: Variable-Clauses Graph Variable Node mean
+VCG-VAR-coeff-variation: Variable-Clauses Graph Variable Node standard deviation
+VCG-VAR-min: Variable-Clauses Graph Variable Node min
+VCG-VAR-max: Variable-Clauses Graph Variable Node max
+VCG-VAR-entropy: Variable-Clauses Graph Variable Node entropy
+POSNEG-RATIO-VAR-mean: Ratio of positive to negative occurances of each variable mean
+POSNEG-RATIO-VAR-stdev: Ratio of positive to negative occurances of each variable standard deviation
+POSNEG-RATIO-VAR-min: Ratio of positive to negative occurances of each variable min
+POSNEG-RATIO-VAR-max: Ratio of positive to negative occurances of each variable max
+POSNEG-RATIO-VAR-entropy: Ratio of positive to negative occurances of each variable entropy
+HORNY-VAR-mean: Number of occurences in a Horn clause for each variable mean
+HORNY-VAR-coeff-variation: Number of occurences in a Horn clause for each variable standard deviation
+HORNY-VAR-min: Number of occurences in a Horn clause for each variable min
+HORNY-VAR-max: Number of occurences in a Horn clause for each variable max
+HORNY-VAR-entropy: Number of occurences in a Horn clause for each variable entropy
+horn-clauses-fraction: Fraction of Horn clauses
+VG-mean: Variable-Graph Node mean
+VG-coeff-variation: Variable-Graph Node standard deviation
+VG-min: Variable-Graph Node min
+VG-max: Variable-Graph Node max
+KLB-featuretime: time needed to compute balance features
+CG-mean: Clause-Graph Node mean
+CG-coeff-variation: Clause-Graph Node standard deviation
+CG-min: Clause-Graph Node min
+CG-max: Clause-Graph Node max
+CG-entropy: Clause-Graph Node entropy
+cluster-coeff-mean: Clause-Graph cluster coefficient mean
+cluster-coeff-coeff-variation: Clause-Graph cluster coefficient standard deviation
+cluster-coeff-min: Clause-Graph cluster coefficient min
+cluster-coeff-max: Clause-Graph cluster coefficient max
+cluster-coeff-entropy: Clause-Graph cluster coefficient entropy
+CG-featuretime: time needed to compute Clause-Graph features
+
+
+
+<<Reduced SAT features>>
+
+nvars: number of variables after simplification 
+nclauses: number of clauses after simplification
+
+POSNEG-RATIO-CLAUSE-mean: Ratio of positive to negative literals in each clause mean
+POSNEG-RATIO-CLAUSE-coeff-variation: Ratio of positive to negative literals in each clause standard deviation
+
+POSNEG-RATIO-CLAUSE-entropy: Ratio of positive to negative literals in each clause entropy
+VCG-CLAUSE-mean: Variable-Clauses Graph Clause Node mean
+VCG-CLAUSE-coeff-variation: Variable-Clauses Graph Clause Node standard deviation
+
+VCG-CLAUSE-entropy: Variable-Clauses Graph Clause Node entropy
+UNARY: Fraction of unary clauses
+BINARY+: Fraction of binary clauses
+TRINARY+: Fraction of trinary clauses
+
+VCG-VAR-mean: Variable-Clauses Graph Variable Node mean
+VCG-VAR-coeff-variation: Variable-Clauses Graph Variable Node standard deviation
+
+VCG-VAR-entropy: Variable-Clauses Graph Variable Node entropy
+POSNEG-RATIO-VAR-mean: Ratio of positive to negative occurances of each variable mean
+POSNEG-RATIO-VAR-stdev: Ratio of positive to negative occurances of each variable standard deviation
+
+POSNEG-RATIO-VAR-entropy: Ratio of positive to negative occurances of each variable entropy
+HORNY-VAR-mean: Number of occurences in a Horn clause for each variable mean
+HORNY-VAR-coeff-variation: Number of occurences in a Horn clause for each variable standard deviation
+
+HORNY-VAR-entropy: Number of occurences in a Horn clause for each variable entropy
+
+VG-mean: Variable-Graph Node mean
+VG-coeff-variation: Variable-Graph Node standard deviation
+
+CG-mean: Clause-Graph Node mean
+CG-coeff-variation: Clause-Graph Node standard deviation
+
+CG-entropy: Clause-Graph Node entropy
+cluster-coeff-mean: Clause-Graph cluster coefficient mean
+cluster-coeff-coeff-variation: Clause-Graph cluster coefficient standard deviation
+
+cluster-coeff-entropy: Clause-Graph cluster coefficient entropy
+
