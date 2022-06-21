@@ -1,0 +1,41 @@
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.3.0
+    hooks:
+    -   id: check-yaml
+    -   id: end-of-file-fixer
+    -   id: trailing-whitespace
+-   repo: https://github.com/psf/black
+    rev: 22.3.0
+    hooks:
+    -   id: black
+-   repo: https://github.com/PyCQA/pylint
+    rev: pylint-2.5.3
+    hooks:
+    -   id: pylint
+        additional_dependencies: [numpy, pandas, joblib, seaborn, pytest]
+-   repo: https://github.com/PyCQA/flake8
+    rev: 3.8.3
+    hooks:
+    -   id: flake8
+  # Check rst documentation syntax
+-   repo: https://github.com/PyCQA/doc8
+    rev: 0.8.1
+    hooks:
+    -   id: doc8
+  # The mypy devs themselves suggest to use this repo in their README.
+-   repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v0.780
+    hooks:
+    -   id: mypy
+  # Standardize import ordering and remove unused imports
+-   repo: https://github.com/sqlalchemyorg/zimports
+    rev: 0.2.0
+    hooks:
+    -   id: zimports
+  # check nummpydoc style
+-   repo: https://github.com/PyCQA/pydocstyle
+    rev: 5.0.2
+    hooks:
+    -   id: pydocstyle
+exclude: ^sphinx/
