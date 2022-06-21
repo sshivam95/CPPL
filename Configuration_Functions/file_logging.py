@@ -1,22 +1,46 @@
+"""Keeping logs."""
 import logging
-from logging.handlers import TimedRotatingFileHandler
-from logging.handlers import RotatingFileHandler, BaseRotatingHandler
-
-
-class MyTimedRotatingFileHandler(TimedRotatingFileHandler):
-    def doRollover(self):
-        x = 1
+from logging.handlers import BaseRotatingHandler
+from logging.handlers import RotatingFileHandler
 
 
 class MyRotatingFileHandler(RotatingFileHandler):
+    """Keep logs of file handling."""
+
     def __init__(self, filename, mode="w", maxBytes=0, backupCount=0):
+        """Initialize custom file handler.
+
+        Parameters
+        ----------
+        filename
+            Name of the file.
+        mode
+            Mode of the handler.
+        maxBytes
+        backupCount
+        """
         BaseRotatingHandler.__init__(self, filename, mode, encoding=None, delay=False)
         self.maxBytes = maxBytes
         self.backupCount = backupCount
 
 
 def tracking_files(filename, logger_name, level):
+    """Track all files.
 
+    Parameters
+    ----------
+    filename
+        Location of the file to log.
+    logger_name
+        .py file to be logged.
+    level
+        Level of the logging.
+
+    Returns
+    -------
+    logger: object
+        Logging object.
+    """
     logger = logging.getLogger(logger_name)
     logger.setLevel(level)
     filehandler_dbg = MyRotatingFileHandler(
@@ -24,8 +48,8 @@ def tracking_files(filename, logger_name, level):
     )
     filehandler_dbg.setLevel(level)
     filehandler_dbg.suffix = ""
-    streamformatter = logging.Formatter(fmt="%(message)s")
-    filehandler_dbg.setFormatter(streamformatter)
+    stream_formatter = logging.Formatter(fmt="%(message)s")
+    filehandler_dbg.setFormatter(stream_formatter)
     logger.addHandler(filehandler_dbg)
 
     return logger
