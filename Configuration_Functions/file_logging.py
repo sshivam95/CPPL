@@ -8,6 +8,7 @@ class MyRotatingFileHandler(RotatingFileHandler):
     """Keep logs of file handling."""
 
     def __init__(self, filename, mode="w", maxBytes=0, backupCount=0):
+        # pylint: disable=non-parent-init-called,super-init-not-called
         """Initialize custom file handler.
 
         Parameters
@@ -15,7 +16,6 @@ class MyRotatingFileHandler(RotatingFileHandler):
         filename
             Name of the file.
         mode
-            Mode of the handler.
         maxBytes
         backupCount
         """
@@ -25,6 +25,7 @@ class MyRotatingFileHandler(RotatingFileHandler):
 
 
 def tracking_files(filename, logger_name, level):
+    # pylint: disable=attribute-defined-outside-init
     """Track all files.
 
     Parameters
