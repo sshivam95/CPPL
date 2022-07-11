@@ -2,45 +2,36 @@
 ## python3 ReACTR_CPPL.py -d modular_kcnf...
 ## ... -to 300 -p pws -s cadical
 
-import time
+import argparse
+import csv
+import json
+import multiprocessing as mp
+from multiprocessing import Manager
 import os
 import os.path
-import signal
-import multiprocessing as mp
-from multiprocessing import Queue, Pipe, Manager, Event
-import argparse
-import numpy as np
-import random
-from subprocess import Popen, PIPE, STDOUT, run
-import subprocess
-import sys
-
-# import fcntl
-import math
-from statistics import mean
-import csv
-
-from setuptools._distutils.command.clean import clean
-from sklearn.decomposition import PCA
-from sklearn import preprocessing
 import pathlib
-from scipy.linalg import logm, expm
-
-import json
-import jsonschema
-from jsonschema import validate
-from statsmodels.genmod.families.links import probit
+import signal
+from subprocess import run
+import sys
+import time
 
 from Configuration_Functions import CPPLConfig
-from Configuration_Functions import setParam
-from Configuration_Functions import pws
-from Configuration_Functions import random_genes
-from Configuration_Functions.random_genes import genes_set
-from Configuration_Functions import tournament as solving
 from Configuration_Functions import file_logging
 from Configuration_Functions import log_on_huge_params
+from Configuration_Functions import pws
+from Configuration_Functions import random_genes
+from Configuration_Functions import setParam
+from Configuration_Functions import tournament as solving
+from Configuration_Functions.random_genes import genes_set
+import jsonschema
+from jsonschema import validate
+import numpy as np
+from sklearn import preprocessing
+from sklearn.decomposition import PCA
 
-# Parse directory of instances, solver, max. time for single solving
+# import fcntl
+
+# Parse directory of instances, solver, max. time_step for single solving
 parser = argparse.ArgumentParser(description="Start Tournaments")
 parser.add_argument(
     "-d",
@@ -88,7 +79,7 @@ parser.add_argument(
     "--exp",
     type=str,
     default=None,
-    help="""Type y if prior gene and score data should 
+    help="""Type y if prior gene and score data should
                     be experimental (Pool_exp.txt) []""",
 )
 parser.add_argument(
@@ -175,7 +166,7 @@ parser.add_argument(
     "--paramlimit",
     type=float,
     default=100000,
-    help="""Limit for the possible absolute value of 
+    help="""Limit for the possible absolute value of
                     a parameter for it to be normed to log space before CPPL computation""",
 )
 parser.add_argument(
@@ -300,7 +291,7 @@ if args.data is None:
             )
 
 elif args.data == "y":
-    if args.exp == None:
+    if args.exp is None:
         Pool_file = "Pool.txt"
     elif args.exp == "y":
         Pool_file = f"Pool_exp_{solver}.txt"
@@ -321,8 +312,8 @@ rounds_to_train = int(args.train_rounds)
 
 ###################################################################
 
-InstFeatdir = pathlib.Path("Instance_Features")
-if InstFeatdir.exists():
+instance_feature_directory = pathlib.Path("Instance_Features")
+if instance_feature_directory.exists():
     pass
 else:
     print(
@@ -385,7 +376,7 @@ params, param_value_dict = CPPLConfig.read_parametrizations(Pool, solver)
 
 params = np.asarray(params)
 
-all_min, all_max = random_genes.get_all_min_and_max(solver, json_param_file)
+all_min, all_max = random_genes.get_all_min_and_max(json_param_file)
 
 all_min, _ = CPPLConfig.read_parametrizations(Pool, solver, contender=all_min)
 all_max, _ = CPPLConfig.read_parametrizations(Pool, solver, contender=all_max)
@@ -395,7 +386,7 @@ params = np.append(params, [all_min], axis=0)
 params = np.append(params, [all_max], axis=0)
 
 params = log_on_huge_params.log_space_convert(
-    solver, float(args.paramlimit), params, json_param_file
+    float(args.paramlimit), params, json_param_file
 )
 
 min_max_scaler = preprocessing.MinMaxScaler()
@@ -676,7 +667,6 @@ if __name__ == "__main__":
                     theta_bar,
                     t,
                     n,
-                    Y_t,
                     S_t,
                     grad,
                     hess_sum,
@@ -743,7 +733,7 @@ if __name__ == "__main__":
             if args.data == "y":
                 print("Prior contender data is used!\n")
             print("Timeout set to", args.timeout, "seconds\n")
-            print("Poolsize set to", args.contenders, "individuals\n")
+            print("Pool size set to", args.contenders, "individuals\n")
             if args.pws == "pws":
                 print("Custom individual injected\n")
             else:
@@ -761,7 +751,7 @@ if __name__ == "__main__":
             if args.baselineperf:
                 winner[0] = None
                 winner_known = False
-            if winner[0] != None:
+            if winner[0] is not None:
                 (
                     current_pool,
                     current_contender_names,

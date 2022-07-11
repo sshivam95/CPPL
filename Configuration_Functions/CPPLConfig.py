@@ -1,26 +1,20 @@
-import numpy as np
-import random
-import scipy as sp
-import os
-import re
 import csv
-import ntpath
-import time
-from sklearn import preprocessing
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import PolynomialFeatures
-import glob
-import os.path
-from scipy.linalg import logm, expm
 import json
-import jsonschema
-from jsonschema import validate
 from multiprocessing import Pool as parallelPool
+import os
+import os.path
+import random
 
-from Configuration_Functions import random_genes
-from Configuration_Functions import pws
-from Configuration_Functions import setParam
 from Configuration_Functions import log_on_huge_params
+from Configuration_Functions import pws
+from Configuration_Functions import random_genes
+from Configuration_Functions import setParam
+import numpy as np
+import scipy as sp
+from sklearn import preprocessing
+from sklearn.preprocessing import PolynomialFeatures
+
+from Configuration_Functions.validation import validate_json_file
 
 
 def get_contenders(
@@ -32,8 +26,7 @@ def get_contenders(
     theta_bar,
     t,
     k,
-    Y_t,
-    S_t,
+        S_t,
     grad,
     hess_sum,
     grad_op_sum,
@@ -48,47 +41,25 @@ def get_contenders(
     json_param_file,
     exp,
 ):
-    # read and preprocess instance features (PCA)
-    features = get_features(f"{directory}", f"{filename}")
-
-    features = standard_scaler.transform(features.reshape(1, -1))
-
-    features = pca_obj_inst.transform(features)
-
-    # get parametrization
-    params, _ = read_parametrizations(Pool, solver)
-
-    params = np.asarray(params)
-
-    params_original_size = params.shape[1]
-
-    params = log_on_huge_params.log_space_convert(solver, pl, params, json_param_file)
-
-    params = min_max_scaler.transform(params)
-
-    # PCA on parametrization
-    params_transformed = pca_obj_params.transform(params)
-
-    # construct X_t (context specific (instance information) feature matrix ( and parameterization information))
-    n = params.shape[0]
-    d = len(theta_bar)
-    X_t = np.zeros((n, d))
-    for i in range(n):
-        next_X_t = joinFeatureMap(params_transformed[i,], features[0], jfm)
-        X_t[i, :] = next_X_t
-
-    # Normalizing the context specific features
-    preprocessing.normalize(X_t, norm="max", copy=False)
-
-    # compute estimated contextualized utility parameters (v_hat)
-    v_hat = np.zeros(n)
-    for i in range(n):
-        v_hat[i] = np.exp(np.inner(theta_bar, X_t[i, :]))
+    X_t, d, features, n, params, v_hat = get_context_feature_matrix(
+        Pool,
+        directory,
+        filename,
+        jfm,
+        json_param_file,
+        min_max_scaler,
+        pca_obj_inst,
+        pca_obj_params,
+        pl,
+        solver,
+        standard_scaler,
+        theta_bar,
+    )
 
     # compute c_t and select S_t (symmetric group on [n], consisting of rankings: r ∈ S_n)
     if t >= 1:
         c_t = np.zeros(n)
-        hess = hessian(theta_bar, Y_t, S_t, X_t)
+        hess = hessian(theta_bar, S_t, X_t)
         hess_sum = hess_sum + hess
         grad_op_sum = grad_op_sum + np.outer(grad, grad)
         try:
@@ -164,10 +135,10 @@ def get_contenders(
                 "\n *********************************\n",
             )
 
-            ## with randomness
-            new_candids_size = 1000
+            # with randomness
+            new_candidates_size = 1000
 
-            global asyncResults
+            global asyncResults, c_t
             asyncResults = []
 
             parametrizations, _ = read_parametrizations(Pool, solver)
@@ -175,14 +146,15 @@ def get_contenders(
             parametrizations = np.asarray(parametrizations)
 
             parametrizations = log_on_huge_params.log_space_convert(
-                solver, pl, parametrizations, json_param_file
+                pl, parametrizations, json_param_file
             )
 
             best_candid = log_on_huge_params.log_space_convert(
-                solver,
                 pl,
-                random_genes.One_Hot_decode(
-                    parametrizations[S_t[0],],
+                random_genes.one_hot_decode(
+                    parametrizations[
+                        S_t[0],
+                    ],
                     solver,
                     param_value_dict=param_value_dict,
                     json_param_file=json_param_file,
@@ -192,10 +164,11 @@ def get_contenders(
             )
 
             second_candid = log_on_huge_params.log_space_convert(
-                solver,
                 pl,
-                random_genes.One_Hot_decode(
-                    parametrizations[S_t[1],],
+                random_genes.one_hot_decode(
+                    parametrizations[
+                        S_t[1],
+                    ],
                     solver,
                     param_value_dict=param_value_dict,
                     json_param_file=json_param_file,
@@ -204,16 +177,16 @@ def get_contenders(
                 exp=True,
             )
 
-            new_candids_transformed, new_candids = parallel_evolution_and_fitness(
+            new_candidates_transformed, new_candidates = parallel_evolution_and_fitness(
                 k,
-                new_candids_size,
+                new_candidates_size,
                 S_t,
                 params,
                 solver,
                 param_value_dict,
                 json_param_file,
                 random_genes.genes_set,
-                random_genes.One_Hot_decode,
+                random_genes.one_hot_decode,
                 log_on_huge_params.log_space_convert,
                 Pool,
                 pl,
@@ -221,23 +194,22 @@ def get_contenders(
                 second_candid,
             )
 
-            new_candids_transformed = min_max_scaler.transform(new_candids_transformed)
-            new_candids_transformed = pca_obj_params.transform(new_candids_transformed)
+            new_candidates_transformed = min_max_scaler.transform(new_candidates_transformed)
+            new_candidates_transformed = pca_obj_params.transform(new_candidates_transformed)
 
-            v_hat_new_candids = np.zeros(new_candids_size)
-            for i in range(new_candids_size):
-                X = joinFeatureMap(new_candids_transformed[i], features[0], jfm)
-                v_hat_new_candids[i] = np.exp(np.inner(theta_bar, X))
+            v_hat_new_candidates = np.zeros(new_candidates_size)
+            for i in range(new_candidates_size):
+                X = join_feature_map(new_candidates_transformed[i], features[0], jfm)
+                v_hat_new_candidates[i] = np.exp(np.inner(theta_bar, X))
 
-            best_new_candids_ind = (-v_hat_new_candids).argsort()[0:discard_size]
+            best_new_candidates_ind = (-v_hat_new_candidates).argsort()[0:discard_size]
 
-            for i in range(len(best_new_candids_ind)):
-                genes = random_genes.getParamsStringFromNumericParams(
+            for i in range(len(best_new_candidates_ind)):
+                genes = random_genes.get_params_string_from_numeric_params(
                     log_on_huge_params.log_space_convert(
-                        solver,
                         pl,
-                        random_genes.One_Hot_decode(
-                            new_candids[best_new_candids_ind[i]],
+                        random_genes.one_hot_decode(
+                            new_candidates[best_new_candidates_ind[i]],
                             solver,
                             param_value_dict=param_value_dict,
                             json_param_file=json_param_file,
@@ -292,6 +264,54 @@ def get_contenders(
     return X_t, contender_list, discard
 
 
+def get_context_feature_matrix(
+    Pool,
+    directory,
+    filename,
+    jfm,
+    json_param_file,
+    min_max_scaler,
+    pca_obj_inst,
+    pca_obj_params,
+    pl,
+    solver,
+    standard_scaler,
+    theta_bar,
+):
+    # read and preprocess instance features (PCA)
+    features = get_features(f"{directory}", f"{filename}")
+    features = standard_scaler.transform(features.reshape(1, -1))
+    features = pca_obj_inst.transform(features)
+    # get parametrization
+    params, _ = read_parametrizations(Pool, solver)
+    params = np.asarray(params)
+    params_original_size = params.shape[1]
+    params = log_on_huge_params.log_space_convert(pl, params, json_param_file)
+    params = min_max_scaler.transform(params)
+    # PCA on parametrization
+    params_transformed = pca_obj_params.transform(params)
+    # construct X_t (context specific (instance information) feature matrix ( and parameterization information))
+    n = params.shape[0]
+    d = len(theta_bar)
+    X_t = np.zeros((n, d))
+    for i in range(n):
+        next_X_t = join_feature_map(
+            params_transformed[
+                i,
+            ],
+            features[0],
+            jfm,
+        )
+        X_t[i, :] = next_X_t
+    # Normalizing the context specific features
+    preprocessing.normalize(X_t, norm="max", copy=False)
+    # compute estimated contextualized utility parameters (v_hat)
+    v_hat = np.zeros(n)
+    for i in range(n):
+        v_hat[i] = np.exp(np.inner(theta_bar, X_t[i, :]))
+    return X_t, d, features, n, params, v_hat
+
+
 asyncResults = []
 
 
@@ -311,45 +331,22 @@ def contender_list_including_generated(
     filename,
     k,
 ):
-    # read and preprocess instance features (PCA)
-    features = get_features(f"{directory}", f"{filename}")
-
-    features = standard_scaler.transform(features.reshape(1, -1))
-
-    features = pca_obj_inst.transform(features)
-
-    # get parametrizations
-    params, _ = read_parametrizations(Pool, solver)
-
-    params = np.asarray(params)
-
-    params_original_size = params.shape[1]
-
-    params = log_on_huge_params.log_space_convert(solver, pl, params, json_param_file)
-
-    params = min_max_scaler.transform(params)
-
-    # PCA on parametrizations
-    params_transformed = pca_obj_params.transform(params)
-
-    # construct X_t (context specific (instance information) feature matrix (parameterizations information))
-    n = params.shape[0]
-    d = len(theta_bar)
-    X_t = np.zeros((n, d))
-
     contender_list = []
 
-    for i in range(n):
-        next_X_t = joinFeatureMap(params_transformed[i,], features[0], jfm)
-        X_t[i, :] = next_X_t
-
-    # Normalizing the context specific features
-    preprocessing.normalize(X_t, norm="max", copy=False)
-
-    v_hat = np.zeros(n)
-
-    for i in range(n):
-        v_hat[i] = np.exp(np.inner(theta_bar, X_t[i, :]))
+    X_t, d, features, n, params, v_hat = get_context_feature_matrix(
+        Pool,
+        directory,
+        filename,
+        jfm,
+        json_param_file,
+        min_max_scaler,
+        pca_obj_inst,
+        pca_obj_params,
+        pl,
+        solver,
+        standard_scaler,
+        theta_bar,
+    )
 
     S_t = (-v_hat).argsort()[0:k]
 
@@ -359,13 +356,13 @@ def contender_list_including_generated(
     return contender_list
 
 
-def saveResult(result):
+def save_result(result):
     asyncResults.append([result[0], result[1]])
 
 
 def parallel_evolution_and_fitness(
     k,
-    new_candids_size,
+    new_candidates_size,
     S_t,
     params,
     solver,
@@ -379,12 +376,14 @@ def parallel_evolution_and_fitness(
     best_candid,
     second_candid,
 ):
-    new_candids = np.zeros(
+    new_candidates = np.zeros(
         shape=(
-            new_candids_size,
+            new_candidates_size,
             len(
-                random_genes.One_Hot_decode(
-                    params[S_t[0],],
+                random_genes.one_hot_decode(
+                    params[
+                        S_t[0],
+                    ],
                     solver,
                     param_value_dict=param_value_dict,
                     json_param_file=json_param_file,
@@ -393,17 +392,19 @@ def parallel_evolution_and_fitness(
         )
     )
     params_length = len(
-        random_genes.One_Hot_decode(
-            params[S_t[0],],
+        random_genes.one_hot_decode(
+            params[
+                S_t[0],
+            ],
             solver,
             param_value_dict=param_value_dict,
             json_param_file=json_param_file,
         )
     )
 
-    last_step = new_candids_size % k
-    new_candids_size = new_candids_size - last_step
-    step_size = new_candids_size / k
+    last_step = new_candidates_size % k
+    new_candidates_size = new_candidates_size - last_step
+    step_size = new_candidates_size / k
     all_steps = []
     for i in range(k):
         all_steps.append(int(step_size))
@@ -420,7 +421,7 @@ def parallel_evolution_and_fitness(
             (
                 best_candid,
                 second_candid,
-                len(new_candids[0]),
+                len(new_candidates[0]),
                 all_steps[i],
                 params_length,
                 genes_set,
@@ -432,28 +433,28 @@ def parallel_evolution_and_fitness(
                 param_value_dict,
                 pl,
             ),
-            callback=saveResult,
+            callback=save_result,
         )
 
     pool.close()
     pool.join()
 
-    new_candids_transformed = []
-    new_candids = []
+    new_candidates_transformed = []
+    new_candidates = []
 
     for i in range(len(asyncResults)):
         for j in range(len(asyncResults[i][0])):
-            new_candids_transformed.append(asyncResults[i][0][j])
-            new_candids.append(asyncResults[i][1][j])
+            new_candidates_transformed.append(asyncResults[i][0][j])
+            new_candidates.append(asyncResults[i][1][j])
 
-    return new_candids_transformed, new_candids
+    return new_candidates_transformed, new_candidates
 
 
 def evolution_and_fitness(
     best_candid,
     second_candid,
-    new_candids,
-    new_candids_size,
+    new_candidates,
+    new_candidates_size,
     params_length,
     genes_set,
     One_Hot_decode,
@@ -465,13 +466,13 @@ def evolution_and_fitness(
     pl,
 ):
     # Generation approach based on genetic mechanism with mutation and random individuals
-    new_candids = np.zeros(shape=(new_candids_size, new_candids))
-    for counter in range(new_candids_size):
+    new_candidates = np.zeros(shape=(new_candidates_size, new_candidates))
+    for counter in range(new_candidates_size):
         random_individual = random.uniform(0, 1)
         next_candid = np.zeros(params_length)
         contender = genes_set(solver, json_param_file)
         genes, _ = read_parametrizations(Pool, solver, contender, json_param_file)
-        mutation_genes = random_genes.One_Hot_decode(
+        mutation_genes = random_genes.one_hot_decode(
             genes,
             solver,
             param_value_dict=param_value_dict,
@@ -488,18 +489,22 @@ def evolution_and_fitness(
             if mutate < 0.1:
                 next_candid[ii] = mutation_genes[ii]
         if random_individual < 0.99:
-            new_candids[counter,] = mutation_genes
+            new_candidates[
+                counter,
+            ] = mutation_genes
         else:
-            new_candids[counter,] = next_candid
-    new_candids = random_genes.One_Hot_decode(
-        new_candids, solver, json_param_file=json_param_file, reverse=True
+            new_candidates[
+                counter,
+            ] = next_candid
+    new_candidates = random_genes.one_hot_decode(
+        new_candidates, solver, json_param_file=json_param_file, reverse=True
     )
 
-    new_candids_transformed = log_on_huge_params.log_space_convert(
-        solver, pl, new_candids, json_param_file
+    new_candidates_transformed = log_on_huge_params.log_space_convert(
+        pl, new_candidates, json_param_file
     )
 
-    return new_candids_transformed, new_candids
+    return new_candidates_transformed, new_candidates
 
 
 def update(winner, theta_hat, theta_bar, S_t, X_t, gamma_1, t, alpha):
@@ -588,20 +593,9 @@ def param_read_from_dict(solver, contender, json_param_file, paramNames):
 
 
 def read_parametrizations(pool, solver, contender=None, json_param_file=None):
-    if json_param_file == None:
-        json_file_name = "params_" + str(solver)
+    paramNames, params = validate_json_file(json_param_file, solver)
 
-        with open(f"Configuration_Functions/{json_file_name}.json", "r") as f:
-            data = f.read()
-        params = json.loads(data)
-
-        paramNames = list(params.keys())
-
-    else:
-        params = json_param_file
-        paramNames = list(params.keys())
-
-    if contender != None:
+    if contender is not None:
 
         new_params, param_value_dict = param_read_from_dict(
             solver, contender, params, paramNames
@@ -609,7 +603,7 @@ def read_parametrizations(pool, solver, contender=None, json_param_file=None):
 
         return np.asarray(new_params), param_value_dict
 
-    elif contender == None:
+    elif contender is None:
 
         if type(pool) != dict:
             Pool_List = list(pool)
@@ -630,7 +624,7 @@ def read_parametrizations(pool, solver, contender=None, json_param_file=None):
         return np.asarray(P), param_value_dict
 
 
-def joinFeatureMap(x, y, mode):
+def join_feature_map(x, y, mode):
     if mode == "concatenation":
         return np.concatenate((x, y), axis=0)
     elif mode == "kronecker":
@@ -641,32 +635,32 @@ def joinFeatureMap(x, y, mode):
 
 
 def gradient(theta, Y, S, X):
-    denom = 0
+    denominator = 0
     num = np.zeros((len(theta)))
     for l in S:
-        denom = denom + np.exp(np.dot(theta, X[l, :]))
+        denominator = denominator + np.exp(np.dot(theta, X[l, :]))
         num = num + (X[l, :] * np.exp(np.dot(theta, X[l, :])))
-    res = X[Y, :] - (num / denom)
+    res = X[Y, :] - (num / denominator)
 
     return res
 
 
-def hessian(theta, Y, S, X):
-    d = len(theta)
-    t_1 = np.zeros((d))
+def hessian(theta, S, X):
+    dimension = len(theta)
+    t_1 = np.zeros(dimension)
     for l in S:
         t_1 = t_1 + (X[l, :] * np.exp(np.dot(theta, X[l, :])))
     num_1 = np.outer(t_1, t_1)
-    denom_1 = 0
+    denominator_1 = 0
     for l in S:
-        denom_1 = denom_1 + np.exp(np.dot(theta, X[l, :])) ** 2
-    s_1 = num_1 / denom_1
+        denominator_1 = denominator_1 + np.exp(np.dot(theta, X[l, :])) ** 2
+    s_1 = num_1 / denominator_1
     #
     num_2 = 0
     for j in S:
         num_2 = num_2 + (np.exp(np.dot(theta, X[j, :])) * np.outer(X[j, :], X[j, :]))
-    denom_2 = 0
+    denominator_2 = 0
     for l in S:
-        denom_2 = denom_2 + np.exp(np.dot(theta, X[l, :]))
-    s_2 = num_2 / denom_2
+        denominator_2 = denominator_2 + np.exp(np.dot(theta, X[l, :]))
+    s_2 = num_2 / denominator_2
     return s_1 - s_2
