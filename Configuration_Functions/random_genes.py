@@ -1,10 +1,10 @@
 """Random Genes Utils."""
+import json
 import math
 import random
 
 import numpy as np
 from numpy.random import choice
-from validation import validate_json_file
 
 
 def get_all_min_and_max(json_param_file):
@@ -211,7 +211,10 @@ def get_log_distribution_params(
     :return:
     """
     log_max_val = math.log(max_val)
-    log_min_val = math.log(min_val)
+    if min_val <= 0:
+        log_min_val = 0
+    else:
+        log_min_val = math.log(min_val)
     log_on_pos = True
     log_on_neg = False
     probab_pos = None
@@ -455,3 +458,26 @@ def get_params_string_from_numeric_params(genes, solver, json_param_file=None):
                 genes[i] = str(string_value)
 
     return genes
+
+
+def validate_json_file(json_param_file, solver):
+    """
+    Validate if the parameter file is of type json.
+
+    :param json_param_file:
+    :param solver:
+    :return:
+    """
+    if json_param_file is None:
+        json_file_name = "params_" + str(solver)
+
+        with open(f"Configuration_Functions/{json_file_name}.json", "r") as file:
+            data = file.read()
+        params = json.loads(data)
+
+        param_names = list(params.keys())
+
+    else:
+        params = json_param_file
+        param_names = list(params.keys())
+    return param_names, params

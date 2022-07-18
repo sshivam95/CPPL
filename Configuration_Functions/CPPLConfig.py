@@ -14,8 +14,6 @@ import scipy as sp
 from sklearn import preprocessing
 from sklearn.preprocessing import PolynomialFeatures
 
-from Configuration_Functions.validation import validate_json_file
-
 
 def get_contenders(
     directory,
@@ -26,7 +24,7 @@ def get_contenders(
     theta_bar,
     t,
     k,
-        S_t,
+    S_t,
     grad,
     hess_sum,
     grad_op_sum,
@@ -75,7 +73,7 @@ def get_contenders(
 
             S_hat_inv = S_hat_inv.astype("float64")
 
-            Sigma_hat = (1 / t) * S_hat_inv * V_hat * S_hat_inv
+            Sigma_hat = (1 / t) * S_hat_inv * V_hat * S_hat_inv  # UCB
 
             Sigma_hat_sqrt = sp.linalg.sqrtm(Sigma_hat)
 
@@ -90,13 +88,10 @@ def get_contenders(
                 )
 
             S_t = (-(v_hat + c_t)).argsort()[0:k]
-
         except:
-
-            S_t = (-(v_hat)).argsort()[0:k]
-            pass
+            S_t = (-v_hat).argsort()[0:k]
     else:
-        S_t = (-(v_hat)).argsort()[0:k]
+        S_t = (-v_hat).argsort()[0:k]
 
     if t >= 1:
         c_t = c_t / max(c_t)
@@ -120,7 +115,7 @@ def get_contenders(
                 if (
                     p2 != p1
                     and v_hat[p2] - c_t[p2] >= v_hat[p1] + c_t[p1]
-                    and (not (p1 in discard))
+                    and (not p1 in discard)
                 ):
                     discard.append(p1)
                     break
@@ -137,9 +132,6 @@ def get_contenders(
 
             # with randomness
             new_candidates_size = 1000
-
-            global asyncResults, c_t
-            asyncResults = []
 
             parametrizations, _ = read_parametrizations(Pool, solver)
 
@@ -194,8 +186,12 @@ def get_contenders(
                 second_candid,
             )
 
-            new_candidates_transformed = min_max_scaler.transform(new_candidates_transformed)
-            new_candidates_transformed = pca_obj_params.transform(new_candidates_transformed)
+            new_candidates_transformed = min_max_scaler.transform(
+                new_candidates_transformed
+            )
+            new_candidates_transformed = pca_obj_params.transform(
+                new_candidates_transformed
+            )
 
             v_hat_new_candidates = np.zeros(new_candidates_size)
             for i in range(new_candidates_size):
@@ -664,3 +660,26 @@ def hessian(theta, S, X):
         denominator_2 = denominator_2 + np.exp(np.dot(theta, X[l, :]))
     s_2 = num_2 / denominator_2
     return s_1 - s_2
+
+
+def validate_json_file(json_param_file, solver):
+    """
+    Validate if the parameter file is of type json.
+
+    :param json_param_file:
+    :param solver:
+    :return:
+    """
+    if json_param_file is None:
+        json_file_name = "params_" + str(solver)
+
+        with open(f"Configuration_Functions/{json_file_name}.json", "r") as file:
+            data = file.read()
+        params = json.loads(data)
+
+        param_names = list(params.keys())
+
+    else:
+        params = json_param_file
+        param_names = list(params.keys())
+    return param_names, params

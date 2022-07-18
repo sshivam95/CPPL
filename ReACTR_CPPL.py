@@ -437,7 +437,7 @@ def non_nlock_read(output):
         return ""
 
 
-def start_run(filename, timelimit, params, core):
+def start_run(filename, timelimit, params, core, sub_start):
     sub_start[core] = time.process_time()
     if args.baselineperf:
         []
@@ -463,13 +463,13 @@ def start_run(filename, timelimit, params, core):
                 results[core], event[0] = if_solved
 
         if results[core][0] != int(0):
-            subnow = time.clock()
-            results[core][1] = results[core][1] + subnow - sub_start[core]
+            sub_now = time.clock()
+            results[core][1] = results[core][1] + sub_now - sub_start[core]
             ev.set()
             event[0] = 1
             winner[0] = core
             res[core] = results[core][:]
-            newtime[0] = results[core][1]
+            new_time[0] = results[core][1]
             awaiting = False
 
         if event[0] == 1 or ev.is_set():
@@ -480,7 +480,7 @@ def start_run(filename, timelimit, params, core):
                 proc.kill()
                 time.sleep(0.1)
                 for index in range(n):
-                    if sub_start[index] - time.clock() >= newtime[0] and index != core:
+                    if sub_start[index] - time.clock() >= new_time[0] and index != core:
                         os.kill(pids[index], signal.SIGKILL)
                 time.sleep(0.1)
                 try:
@@ -490,7 +490,7 @@ def start_run(filename, timelimit, params, core):
             if solver == "cadical":
                 time.sleep(0.1)
                 for index in range(n):
-                    if sub_start[index] - time.clock() >= newtime[0] and index != core:
+                    if sub_start[index] - time.clock() >= new_time[0] and index != core:
                         try:
                             os.system("killall cadical")
                         except:
@@ -539,7 +539,7 @@ def initialize_data_structs():
     )
 
 
-def tournament(n, contender_list, start_run, filename, Pool):
+def tournament(n, contender_list, start_run, filename, Pool, sub_start):
     for core in range(n):
         contender = str(contender_list[core])
 
@@ -548,7 +548,8 @@ def tournament(n, contender_list, start_run, filename, Pool):
         )
 
         process[core] = mp.Process(
-            target=start_run, args=[filename, args.timeout, param_string, core]
+            target=start_run,
+            args=[filename, args.timeout, param_string, core, sub_start],
         )
 
     # Starting processes
@@ -717,7 +718,7 @@ if __name__ == "__main__":
                 winner,
                 res,
                 interim,
-                newtime,
+                new_time,
                 pids,
                 sub_start,
                 process,
@@ -727,7 +728,9 @@ if __name__ == "__main__":
                 winner_known,
             ) = initialize_data_structs()
 
-            process = tournament(n, contender_list, start_run, file_path, Pool)
+            process = tournament(
+                n, contender_list, start_run, file_path, Pool, sub_start
+            )
 
             # Output Setting
             if args.data == "y":
@@ -775,10 +778,10 @@ if __name__ == "__main__":
             else:
                 winner_known = False
 
-            print("Time needed:", round(newtime[0], 2), "seconds\n\n\n")
+            print("Time needed:", round(new_time[0], 2), "seconds\n\n\n")
 
             # Update solving times for instances
-            times_instances.append(round(newtime[0], 2))
+            times_instances.append(round(new_time[0], 2))
 
             # Log times needed for instances to file
             tracking_times.info(times_instances)
@@ -787,7 +790,7 @@ if __name__ == "__main__":
             # args.train_rounds of times
             if args.train_number is not None:
                 files = sorted(f)
-                if instance_file == files[int(args.train_number) - 1]:
+                if filename == files[int(args.train_number) - 1]:
                     if rounds_to_train != 0:
                         print(
                             "Training Round",
