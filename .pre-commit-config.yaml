@@ -40,9 +40,9 @@ repos:
     rev: 0.2.0
     hooks:
     -   id: zimports
-  # check nummpydoc style
--   repo: https://github.com/PyCQA/pydocstyle
-    rev: 5.0.2
-    hooks:
-    -   id: pydocstyle
+#  # check nummpydoc style
+#-   repo: https://github.com/PyCQA/pydocstyle
+#    rev: 5.0.2
+#    hooks:
+#    -   id: pydocstyle
 exclude: ^sphinx/
