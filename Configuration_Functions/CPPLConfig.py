@@ -516,7 +516,7 @@ def update(winner, theta_hat, theta_bar, S_t, X_t, gamma_1, t, alpha):
 
 
 def get_features(directory, filename):
-    with open(f"Instance_Features/Features_{directory}_5000.csv", "r") as csvFile:
+    with open(f"Instance_Features/Features_{directory}.csv", "r") as csvFile:
         reader = csv.reader(csvFile)
         next(reader)
         for row in reader:
