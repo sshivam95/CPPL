@@ -54,9 +54,9 @@ def get_contenders(
         theta_bar,
     )
 
-    # compute c_t and select S_t (symmetric group on [n], consisting of rankings: r ∈ S_n)
+    # compute confidence_t and select S_t (symmetric group on [n], consisting of rankings: r ∈ S_n)
     if t >= 1:
-        c_t = np.zeros(n)
+        confidence_t = np.zeros(n)
         hess = hessian(theta_bar, S_t, X_t)
         hess_sum = hess_sum + hess
         grad_op_sum = grad_op_sum + np.outer(grad, grad)
@@ -82,22 +82,22 @@ def get_contenders(
                     X_t[i, :], X_t[i, :]
                 )
 
-                c_t[i] = omega * np.sqrt(
+                confidence_t[i] = omega * np.sqrt(
                     (2 * np.log(t) + d + 2 * np.sqrt(d * np.log(t)))
                     * np.linalg.norm(Sigma_hat_sqrt * M_i * Sigma_hat_sqrt, ord=2)
                 )
 
-            S_t = (-(v_hat + c_t)).argsort()[0:k]
+            S_t = (-(v_hat + confidence_t)).argsort()[0:k]
         except:
             S_t = (-v_hat).argsort()[0:k]
     else:
         S_t = (-v_hat).argsort()[0:k]
 
     if t >= 1:
-        c_t = c_t / max(c_t)
+        confidence_t = confidence_t / max(confidence_t)
         v_hat = v_hat / max(v_hat)
-        # print('\nc_t\n',c_t,'\n')
-        # print('Index highest c_t =',c_t.argmax(axis=0),'\n')
+        # print('\nconfidence_t\n',confidence_t,'\n')
+        # print('Index highest confidence_t =',confidence_t.argmax(axis=0),'\n')
 
     contender_list = []
     for i in range(k):
@@ -114,7 +114,7 @@ def get_contenders(
             for p2 in range(n):
                 if (
                     p2 != p1
-                    and v_hat[p2] - c_t[p2] >= v_hat[p1] + c_t[p1]
+                    and v_hat[p2] - confidence_t[p2] >= v_hat[p1] + confidence_t[p1]
                     and (not p1 in discard)
                 ):
                     discard.append(p1)
