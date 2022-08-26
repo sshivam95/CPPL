@@ -437,10 +437,10 @@ def non_nlock_read(output):
         return ""
 
 
-def start_run(filename, timelimit, params, core, sub_start):
+def start_run(filename, timelimit, params, core, sub_start, pids, results, interim, ev, event, new_time):
     sub_start[core] = time.process_time()
     if args.baselineperf:
-        []
+        params = []
     else:
         pass
     proc = solving.start(params, timelimit, filename, solver)
@@ -539,7 +539,7 @@ def initialize_data_structs():
     )
 
 
-def tournament(n, contender_list, start_run, filename, Pool, sub_start):
+def tournament(n, contender_list, start_run, filename, Pool, sub_start, pids, results, interim, ev, event, new_time):
     for core in range(n):
         contender = str(contender_list[core])
 
@@ -549,7 +549,7 @@ def tournament(n, contender_list, start_run, filename, Pool, sub_start):
 
         process[core] = mp.Process(
             target=start_run,
-            args=[filename, args.timeout, param_string, core, sub_start],
+            args=[filename, args.timeout, param_string, core, sub_start, pids, results, interim, ev, event, new_time],
         )
 
     # Starting processes
@@ -570,7 +570,7 @@ def watch_run(process, start, n, ev, pids):
         currenttime = now - start
         if currenttime >= args.timeout:
             ev.set()
-            event[0] == 1
+            event[0] == 1 # Question: What is it's use?
             for core in range(n):
                 try:
                     os.kill(pids[core], signal.SIGKILL)
@@ -644,7 +644,7 @@ if __name__ == "__main__":
             if solver == "cadical" or solver == "glucose":
                 file_ending = ".cnf"
             elif solver == "cplex":
-                file_ending = ".mps"
+                file_ending = ".mps" # Todo: add .mps file
             dot = filename.find(".")
 
             file_path = f"{directory}/" + str(filename)
