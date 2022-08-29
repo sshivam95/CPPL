@@ -463,7 +463,7 @@ def start_run(filename, timelimit, params, core, sub_start):
                 results[core], event[0] = if_solved
 
         if results[core][0] != int(0):
-            sub_now = time.clock()
+            sub_now = time.process_time()
             results[core][1] = results[core][1] + sub_now - sub_start[core]
             ev.set()
             event[0] = 1
@@ -480,7 +480,7 @@ def start_run(filename, timelimit, params, core, sub_start):
                 proc.kill()
                 time.sleep(0.1)
                 for index in range(n):
-                    if sub_start[index] - time.clock() >= new_time[0] and index != core:
+                    if sub_start[index] - time.process_time() >= new_time[0] and index != core:
                         os.kill(pids[index], signal.SIGKILL)
                 time.sleep(0.1)
                 try:
@@ -490,7 +490,7 @@ def start_run(filename, timelimit, params, core, sub_start):
             if solver == "cadical":
                 time.sleep(0.1)
                 for index in range(n):
-                    if sub_start[index] - time.clock() >= new_time[0] and index != core:
+                    if sub_start[index] - time.process_time() >= new_time[0] and index != core:
                         try:
                             os.system("killall cadical")
                         except:
