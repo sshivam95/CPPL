@@ -1,6 +1,6 @@
-## Start ReACTR_CPPL by:
-## python3 ReACTR_CPPL.py -d modular_kcnf...
-## ... -to 300 -p pws -s cadical
+# Start ReACTR_CPPL by:
+# python3 ReACTR_CPPL.py -d modular_kcnf...
+# ... -to 300 -p pws -s cadical
 
 import argparse
 import csv
@@ -43,7 +43,7 @@ def validate_param_json(solver):
         data = f.read()
     params = json.loads(data)
 
-    paramNames = list(params.keys())
+    param_names = list(params.keys())
 
     with open("Configuration_Functions/paramSchema.json", "r") as f:
         schema = f.read()
@@ -56,7 +56,7 @@ def validate_param_json(solver):
             return False
         return True
 
-    for pn in paramNames:
+    for pn in param_names:
         valid = json_validation(params[pn])
         if not valid:
             print(params[pn])
@@ -77,17 +77,17 @@ def non_nlock_read(output):
 
 
 def start_run(
-        filename,
-        timelimit,
-        params,
-        core,
-        sub_start,
-        pids,
-        results,
-        interim,
-        ev,
-        event,
-        new_time,
+    filename,
+    timelimit,
+    params,
+    core,
+    sub_start,
+    pids,
+    results,
+    interim,
+    ev,
+    event,
+    new_time,
 ):
     sub_start[core] = time.process_time()
     if args.baselineperf:
@@ -132,8 +132,8 @@ def start_run(
                 time.sleep(0.1)
                 for index in range(n):
                     if (
-                            sub_start[index] - time.process_time() >= new_time[0]
-                            and index != core
+                        sub_start[index] - time.process_time() >= new_time[0]
+                        and index != core
                     ):
                         os.kill(pids[index], signal.SIGKILL)
                 time.sleep(0.1)
@@ -145,8 +145,8 @@ def start_run(
                 time.sleep(0.1)
                 for index in range(n):
                     if (
-                            sub_start[index] - time.process_time() >= new_time[0]
-                            and index != core
+                        sub_start[index] - time.process_time() >= new_time[0]
+                        and index != core
                     ):
                         try:
                             os.system("killall cadical")
@@ -160,20 +160,20 @@ def initialize_data_structures():
     mp.freeze_support()
     event = Manager().list([0])
     winner = Manager().list([None])
-    res = Manager().list([[0, 0] for core in range(n)])
+    res = Manager().list([[0, 0] for _ in range(n)])
+    interim = mp.Manager().list([0 for _ in range(n)])
     if solver == "cadical":
-        interim = Manager().list([[0, 0, 0, 0, 0, 0] for core in range(n)])
+        interim = Manager().list([[0, 0, 0, 0, 0, 0] for _ in range(n)])
     elif solver == "glucose":
-        interim = Manager().list([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0] for core in range(n)])
+        interim = Manager().list([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0] for _ in range(n)])
     elif solver == "cplex":
-        interim = Manager().list([[1000000, 100, 0, 0] for core in range(n)])
+        interim = Manager().list([[1000000, 100, 0, 0] for _ in range(n)])
     new_time = Manager().list([args.timeout])
-    process_ids = Manager().list([[0] for core in range(n)])
-    sub_start = Manager().list([[0] for core in range(n)])
+    process_ids = Manager().list([[0] for _ in range(n)])
+    sub_start = Manager().list([[0] for _ in range(n)])
 
     # Initialize parallel solving data
     process = ["process_{0}".format(s) for s in range(n)]
-    global results, interim
     results = [[0 for s in range(2)] for c in range(n)]
     interim_res = [[0 for s in range(3)] for c in range(n)]
     start = time.time()
@@ -197,18 +197,18 @@ def initialize_data_structures():
 
 
 def tournament(
-        n,
-        contender_list,
-        start_run,
-        filename,
-        Pool,
-        sub_start,
-        pids,
-        results,
-        interim,
-        ev,
-        event,
-        new_time,
+    n,
+    contender_list,
+    start_run,
+    filename,
+    Pool,
+    sub_start,
+    pids,
+    results,
+    interim,
+    ev,
+    event,
+    new_time,
 ):
     for core in range(n):
         contender = str(contender_list[core])
@@ -286,16 +286,16 @@ def close_run(n, interim, process, res, interim_res):
 
 
 def cppl_update(
-        Pool, contender_list, winner, Y_t, theta_hat, theta_bar, S_t, X_t, gamma_1, t, alpha
+    contender_pool, contender_list, winner, theta_hat, theta_bar, S_t, X_t, gamma_1, time_step, alpha
 ):
     current_pool = []
 
-    for keys in Pool:
-        current_pool.append(Pool[keys])
+    for keys in contender_pool:
+        current_pool.append(contender_pool[keys])
 
     current_contender_names = []
     for i in range(len(contender_list)):
-        current_contender_names.append(str(Pool[contender_list[i]]))
+        current_contender_names.append(str(contender_pool[contender_list[i]]))
 
     contender_list = []
     for i in range(n):
@@ -304,17 +304,15 @@ def cppl_update(
     Y_t = int(contender_list[winner[0]][10:])
     print(f"Winner is contender_{Y_t}")
     [theta_hat, theta_bar, grad] = CPPLConfig.update(
-        Y_t, theta_hat, theta_bar, S_t, X_t, gamma_1, t, alpha
+        Y_t, theta_hat, theta_bar, S_t, X_t, gamma_1, time_step, alpha
     )
 
     return current_pool, current_contender_names, theta_hat, theta_bar, grad, Y_t
 
 
 def _main():
-    global args, solver, directory, files, times_instances, problem_instance_list, tracking_times, tracking_pool, n, \
-        json_param_file, contender_pool, f, rounds_to_train, standard_scaler, pca_obj_inst, params, param_value_dict, \
-        min_max_scaler, pca_obj_params, jfm, theta_hat, theta_bar, grad_op_sum, hess_sum, omega, gamma_1, alpha, t, Y_t, \
-        S_t, grad, winner_known, dimensions
+    # global args, solver, directory, files, times_instances, problem_instance_list, tracking_times, tracking_pool, n, json_param_file, contender_pool, f, rounds_to_train, standard_scaler, pca_obj_inst, params, param_value_dict, min_max_scaler, pca_obj_params, jfm, theta_hat, theta_bar, grad_op_sum, hess_sum, omega, gamma_1, alpha, t, winner_index_time_step, S_t, grad, winner_known, dimensions
+    global f
     # Parse directory of instances, solver, max. time_step for single solving
     parser = argparse.ArgumentParser(description="Start Tournaments")
     parser.add_argument(
@@ -470,13 +468,14 @@ def _main():
     )
     args, unknown = parser.parse_known_args()
     solver = args.solver
-    original_chance = args.chance
+    original_chance = (
+        args.chance
+    )  # Question: What are the uses of these? They are not used in the code anywhere, is it safe to delete them?
     original_mutation = args.mutate
     original_timeout = args.timeout
 
     (
         directory,
-        files,
         times_instances,
         problem_instance_list,
     ) = _init_output(args=args)
@@ -491,7 +490,7 @@ def _main():
         filename=args.times_file_name, logger_name="ReACTR_CPPL", level="INFO"
     )
     tracking_pool = file_logging.tracking_files(
-        "contender_pool.json", "ReACTR_Pool", "INFO"
+        filename="contender_pool.json", logger_name="ReACTR_Pool", level="INFO"
     )
 
     # Count available cores
@@ -507,10 +506,84 @@ def _main():
     tracking_pool.info(contender_pool)
     # If training is required, prepare
     if args.train_number is not None:
-        for r, dimensions, f in sorted(os.walk(directory)):
+        for r, d, f in sorted(os.walk(directory)):
             continue
     rounds_to_train = int(args.train_rounds)
     ###################################################################
+    _check_instance_feature_directory(
+        args, directory
+    )  # Check if the instance feature directory available
+
+    directory, features, standard_scaler = _init_features(
+        directory
+    )  # initialize features from instance files
+
+    no_comp_pca_features, pca_obj_inst = _init_pca_features(
+        args, features
+    )  # initialize pca features
+
+    # Get parameters and apply PCA
+    (
+        min_max_scaler,
+        num_pca_params_components,
+        param_value_dict,
+        params,
+        pca_obj_params,
+    ) = _get_pca_params(args, contender_pool, json_param_file, solver)
+
+    # other parameters
+    (
+        S_t,
+        Y_t,
+        alpha,
+        gamma_1,
+        grad,
+        grad_op_sum,
+        hess_sum,
+        jfm,
+        omega,
+        time_step,
+        theta_bar,
+        theta_hat,
+    ) = _get_other_params(args, no_comp_pca_features, num_pca_params_components)
+    #########################################
+    winner_known = True
+    return (
+        args,
+        solver,
+        directory,
+        times_instances,
+        problem_instance_list,
+        tracking_times,
+        tracking_pool,
+        n,
+        json_param_file,
+        contender_pool,
+        f,
+        rounds_to_train,
+        standard_scaler,
+        pca_obj_inst,
+        params,
+        param_value_dict,
+        min_max_scaler,
+        pca_obj_params,
+        jfm,
+        theta_hat,
+        theta_bar,
+        grad_op_sum,
+        hess_sum,
+        omega,
+        gamma_1,
+        alpha,
+        time_step,
+        Y_t,
+        S_t,
+        grad,
+        winner_known,
+    )
+
+
+def _check_instance_feature_directory(args, directory):
     instance_feature_directory = pathlib.Path("Instance_Features")
     if instance_feature_directory.exists():
         pass
@@ -532,42 +605,48 @@ def _main():
         print("\nExiting...")
         sys.exit(0)
 
-    # read features
-    if os.path.isfile(
-            "Instance_Features/training_features_" + str(directory)[2:-1] + ".csv"
-    ):
-        pass
-    else:
-        print(
-            "\n\nThere needs to be a file with training instance features "
-            "named << training_features_" + str(directory)[2:-1] + ".csv >> in"
-                                                                   " the directory Instance_Features\n\n"
-        )
-        sys.exit(0)
-    features = []
-    train_list = []
-    directory = str(directory)[2:-1]
-    with open(f"Instance_Features/training_features_{directory}.csv", "r") as csvFile:
-        reader = csv.reader(csvFile)
-        next(reader)
-        for row in reader:
-            if len(row[0]) != 0:
-                next_features = row
-                train_list.append(row[0])
-                next_features.pop(0)
-                next_features = [float(j) for j in next_features]
-                features.append(next_features)
-    csvFile.close()
-    features = np.asarray(features)
-    standard_scaler = preprocessing.StandardScaler()
-    features = standard_scaler.fit_transform(features)
 
-    # PCA on features
-    no_comp_pca_features = args.nc_pca_f
-    pca_obj_inst = PCA(n_components=no_comp_pca_features)
-    pca_obj_inst.fit(features)
+def _get_other_params(args, no_comp_pca_features, num_pca_params_components):
+    jfm = args.jfm  # 'polynomial'
+    dimensions = 4  # by default
+    if jfm == "concatenation":
+        dimensions = no_comp_pca_features + num_pca_params_components
+    elif jfm == "kronecker":
+        dimensions = no_comp_pca_features * num_pca_params_components
+    elif jfm == "polynomial":
+        for index_pca_params in range(
+            (no_comp_pca_features + num_pca_params_components) - 2
+        ):
+            dimensions = dimensions + 3 + index_pca_params
+    # theta_hat = np.random.rand(dimensions)
+    theta_hat = np.zeros(dimensions)
+    theta_bar = theta_hat
+    grad_op_sum = np.zeros((dimensions, dimensions))
+    hess_sum = np.zeros((dimensions, dimensions))
+    omega = args.omega
+    gamma_1 = args.gamma
+    alpha = args.alpha
+    time_step = 0
+    Y_t = 0
+    S_t = []
+    grad = np.zeros(dimensions)
+    return (
+        S_t,
+        Y_t,
+        alpha,
+        gamma_1,
+        grad,
+        grad_op_sum,
+        hess_sum,
+        jfm,
+        omega,
+        time_step,
+        theta_bar,
+        theta_hat,
+    )
 
-    # Get parameters and apply PCA
+
+def _get_pca_params(args, contender_pool, json_param_file, solver):
     params, param_value_dict = CPPLConfig.read_parametrizations(contender_pool, solver)
     params = np.asarray(params)
     all_min, all_max = random_genes.get_all_min_and_max(json_param_file)
@@ -587,65 +666,54 @@ def _main():
     num_pca_params_components = args.nc_pca_p
     pca_obj_params = PCA(n_components=num_pca_params_components)
     pca_obj_params.fit(params)
-
-    # other parameters
-    jfm = args.jfm  # 'polynomial'
-    if jfm == "concatenation":
-        dimensions = no_comp_pca_features + num_pca_params_components
-    elif jfm == "kronecker":
-        dimensions = no_comp_pca_features * num_pca_params_components
-    elif jfm == "polynomial":
-        dimensions = 4
-        for index_pca_params in range((no_comp_pca_features + num_pca_params_components) - 2):
-            dimensions = dimensions + 3 + index_pca_params
-    # theta_hat = np.random.rand(dimensions)
-    theta_hat = np.zeros(dimensions)
-    theta_bar = theta_hat
-    grad_op_sum = np.zeros((dimensions, dimensions))
-    hess_sum = np.zeros((dimensions, dimensions))
-    omega = args.omega
-    gamma_1 = args.gamma
-    alpha = args.alpha
-    t = 0
-    Y_t = 0
-    S_t = []
-    grad = np.zeros(dimensions)
-    #########################################
-    winner_known = True
     return (
-        args,
-        solver,
-        directory,
-        files,
-        times_instances,
-        problem_instance_list,
-        tracking_times,
-        tracking_pool,
-        n,
-        json_param_file,
-        contender_pool,
-        f,
-        rounds_to_train,
-        standard_scaler,
-        pca_obj_inst,
-        params,
-        param_value_dict,
         min_max_scaler,
+        num_pca_params_components,
+        param_value_dict,
+        params,
         pca_obj_params,
-        jfm,
-        theta_hat,
-        theta_bar,
-        grad_op_sum,
-        hess_sum,
-        omega,
-        gamma_1,
-        alpha,
-        t,
-        Y_t,
-        S_t,
-        grad,
-        winner_known,
     )
+
+
+def _init_pca_features(args, features):
+    # PCA on features
+    no_comp_pca_features = args.nc_pca_f
+    pca_obj_inst = PCA(n_components=no_comp_pca_features)
+    pca_obj_inst.fit(features)
+    return no_comp_pca_features, pca_obj_inst
+
+
+def _init_features(directory):
+    # read features
+    if os.path.isfile(
+        "Instance_Features/training_features_" + str(directory)[2:-1] + ".csv"
+    ):
+        pass
+    else:
+        print(
+            "\n\nThere needs to be a file with training instance features "
+            "named << training_features_" + str(directory)[2:-1] + ".csv >> in"
+            " the directory Instance_Features\n\n"
+        )
+        sys.exit(0)
+    features = []
+    train_list = []
+    directory = str(directory)[2:-1]
+    with open(f"Instance_Features/training_features_{directory}.csv", "r") as csvFile:
+        reader = csv.reader(csvFile)
+        next(reader)
+        for row in reader:
+            if len(row[0]) != 0:
+                next_features = row
+                train_list.append(row[0])
+                next_features.pop(0)
+                next_features = [float(j) for j in next_features]
+                features.append(next_features)
+    csvFile.close()
+    features = np.asarray(features)
+    standard_scaler = preprocessing.StandardScaler()
+    features = standard_scaler.fit_transform(features)
+    return directory, features, standard_scaler
 
 
 def _init_parameter_directory():
@@ -661,8 +729,10 @@ def _init_output(args):
     # Initialize output of times needed for solving one instance
     if args.directory != "No Problem Instance Directory given":
         directory = os.fsencode(args.directory)
-        path, dirs, files = next(os.walk(args.directory))
-        file_count = len(files)
+        path, dirs, files = next(
+            os.walk(args.directory)
+        )  # Question: path, dirs and files are not used anywhere, what is its purpose?
+        file_count = len(files)  # Question: It is not used anywhere, safe to delete?
         times_instances = []
         if args.file_order == "ascending":
             problem_instance_list = _init_problem_instance_list(
@@ -684,7 +754,7 @@ def _init_output(args):
         )
         sys.exit(0)
 
-    return (directory, files, times_instances, problem_instance_list)
+    return directory, times_instances, problem_instance_list
 
 
 def _init_problem_instance_list(problem_instance_list):
@@ -702,20 +772,23 @@ def _init_pool(args, json_param_file, solver):
     # Initialize contender_pool
     if args.data is None:
         pool_keys = ["contender_{0}".format(c) for c in range(args.contenders)]
-        Pool = dict.fromkeys(pool_keys, 0)
+        contender_pool = dict.fromkeys(pool_keys, 0)
         if args.baselineperf:
             print("Baseline Performance Run (only default parameters)")
-            for key in Pool:
-                Pool[key] = pws.set_genes(solver, json_param_file)
-                setParam.set_params(key, Pool[key], solver, json_param_file)
+            for key in contender_pool:
+                contender_pool[key] = pws.set_genes(solver, json_param_file)
+                setParam.set_params(key, contender_pool[key], solver, json_param_file)
         else:
-            for key in Pool:
-                Pool[key] = genes_set(solver)
-                setParam.set_params(key, Pool[key], solver, json_param_file)
+            for key in contender_pool:
+                contender_pool[key] = genes_set(solver)
+                setParam.set_params(key, contender_pool[key], solver, json_param_file)
             if args.pws is not None:
-                Pool["contender_0"] = pws.set_genes(solver, json_param_file)
+                contender_pool["contender_0"] = pws.set_genes(solver, json_param_file)
                 setParam.set_params(
-                    "contender_0", Pool["contender_0"], solver, json_param_file
+                    "contender_0",
+                    contender_pool["contender_0"],
+                    solver,
+                    json_param_file,
                 )
 
     elif args.data == "y":
@@ -725,11 +798,11 @@ def _init_pool(args, json_param_file, solver):
         elif args.exp == "y":
             Pool_file = f"Pool_exp_{solver}.json"
         with open(f"{Pool_file}", "r") as file:
-            Pool = eval(file.read())
-            for key in Pool:
-                setParam.set_params(key, Pool[key], solver, json_param_file)
+            contender_pool = eval(file.read())
+            for key in contender_pool:
+                setParam.set_params(key, contender_pool[key], solver, json_param_file)
 
-    return Pool
+    return contender_pool
 
 
 if __name__ == "__main__":
@@ -738,7 +811,6 @@ if __name__ == "__main__":
         args,
         solver,
         directory,
-        files,
         times_instances,
         problem_instance_list,
         tracking_times,
@@ -746,7 +818,7 @@ if __name__ == "__main__":
         n,
         json_param_file,
         contender_pool,
-        f,
+        training_files,
         rounds_to_train,
         standard_scaler,
         pca_obj_inst,
@@ -762,8 +834,8 @@ if __name__ == "__main__":
         omega,
         gamma_1,
         alpha,
-        t,
-        Y_t,
+        time_step,
+        winner_index_time_step,
         S_t,
         grad,
         winner_known,
@@ -802,7 +874,7 @@ if __name__ == "__main__":
                     pca_obj_params=pca_obj_params,
                     jfm=jfm,
                     theta_bar=theta_bar,
-                    t=t,
+                    time_step=time_step,
                     k=n,
                     S_t=S_t,
                     grad=grad,
@@ -825,9 +897,9 @@ if __name__ == "__main__":
                     S_t.append(int(contender_list[i].replace("contender_", "")))
 
                 if discard:
-                    t = 1
+                    time_step = 1
 
-                t = t + 1
+                time_step = time_step + 1
 
             else:
                 contender_list = CPPLConfig.contender_list_including_generated(
@@ -865,7 +937,18 @@ if __name__ == "__main__":
             ) = initialize_data_structures()
 
             process = tournament(
-                n, contender_list, start_run, file_path, contender_pool, sub_start
+                n=n,
+                contender_list=contender_list,
+                start_run=start_run,
+                filename=file_path,
+                Pool=contender_pool,
+                sub_start=sub_start,
+                pids=process_ids,
+                results=results,
+                interim=interim,
+                ev=multiprocess_event,
+                event=event,
+                new_time=new_time,
             )
 
             # Output Setting
@@ -897,19 +980,18 @@ if __name__ == "__main__":
                     theta_hat,
                     theta_bar,
                     grad,
-                    Y_t,
+                    winner_index_time_step,
                 ) = cppl_update(
-                    contender_pool,
-                    contender_list,
-                    winner,
-                    Y_t,
-                    theta_hat,
-                    theta_bar,
-                    S_t,
-                    X_t,
-                    gamma_1,
-                    t,
-                    alpha,
+                    contender_pool=contender_pool,
+                    contender_list=contender_list,
+                    winner=winner,
+                    theta_hat=theta_hat,
+                    theta_bar=theta_bar,
+                    S_t=S_t,
+                    X_t=X_t,
+                    gamma_1=gamma_1,
+                    time_step=time_step,
+                    alpha=alpha,
                 )
             else:
                 winner_known = False
@@ -924,7 +1006,7 @@ if __name__ == "__main__":
 
             # Manage Training of args.train_number instances for args.train_rounds times
             if args.train_number is not None:
-                files = sorted(f)
+                files = sorted(training_files)
                 if filename == files[int(args.train_number) - 1]:
                     if rounds_to_train != 0:
                         print(
