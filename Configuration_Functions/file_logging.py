@@ -35,7 +35,7 @@ def tracking_files(filename, logger_name, level):
     logger_name
         .py file to be logged.
     level
-        Level of the logging.
+        Logging level.
 
     Returns
     -------
