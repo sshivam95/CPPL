@@ -22,7 +22,7 @@ def get_contenders(
     pca_obj_params,
     jfm,
     theta_bar,
-    t,
+    time_step,
     k,
     S_t,
     grad,
@@ -55,17 +55,17 @@ def get_contenders(
     )
 
     # compute confidence_t and select S_t (symmetric group on [n], consisting of rankings: r ∈ S_n)
-    if t >= 1:
+    if time_step >= 1:
         confidence_t = np.zeros(n)
         hess = hessian(theta_bar, S_t, X_t)
         hess_sum = hess_sum + hess
         grad_op_sum = grad_op_sum + np.outer(grad, grad)
         try:
-            V_hat = (1 / t) * grad_op_sum
+            V_hat = (1 / time_step) * grad_op_sum
 
             V_hat = V_hat.astype("float64")
 
-            S_hat = (1 / t) * hess_sum
+            S_hat = (1 / time_step) * hess_sum
 
             S_hat = S_hat.astype("float64")
 
@@ -73,7 +73,7 @@ def get_contenders(
 
             S_hat_inv = S_hat_inv.astype("float64")
 
-            Sigma_hat = (1 / t) * S_hat_inv * V_hat * S_hat_inv  # UCB
+            Sigma_hat = (1 / time_step) * S_hat_inv * V_hat * S_hat_inv  # UCB
 
             Sigma_hat_sqrt = sp.linalg.sqrtm(Sigma_hat)
 
@@ -83,7 +83,7 @@ def get_contenders(
                 )
 
                 confidence_t[i] = omega * np.sqrt(
-                    (2 * np.log(t) + d + 2 * np.sqrt(d * np.log(t)))
+                    (2 * np.log(time_step) + d + 2 * np.sqrt(d * np.log(time_step)))
                     * np.linalg.norm(Sigma_hat_sqrt * M_i * Sigma_hat_sqrt, ord=2)
                 )
 
@@ -93,7 +93,7 @@ def get_contenders(
     else:
         S_t = (-v_hat).argsort()[0:k]
 
-    if t >= 1:
+    if time_step >= 1:
         confidence_t = confidence_t / max(confidence_t)
         v_hat = v_hat / max(v_hat)
         # print('\nconfidence_t\n',confidence_t,'\n')
@@ -109,7 +109,7 @@ def get_contenders(
     discard = []
 
     # update contenders
-    if t >= 1:
+    if time_step >= 1:
         for p1 in range(n):
             for p2 in range(n):
                 if (
@@ -217,6 +217,7 @@ def get_contenders(
                     json_param_file,
                 )
 
+                # Question: What is the use of this check? It is not being used anywhere.
                 if type(discard) == list:
                     discard_is_list = True
                 else:
@@ -245,7 +246,7 @@ def get_contenders(
                 k,
             )
 
-    if t == 0:
+    if time_step == 0:
 
         if exp == "y":
             for i in range(k):
@@ -503,14 +504,14 @@ def evolution_and_fitness(
     return new_candidates_transformed, new_candidates
 
 
-def update(winner, theta_hat, theta_bar, S_t, X_t, gamma_1, t, alpha):
+def update(winner, theta_hat, theta_bar, S_t, X_t, gamma_1, time_step, alpha):
     grad = gradient(theta_hat, winner, S_t, X_t)
-    theta_hat = theta_hat + gamma_1 * t ** (-alpha) * grad
+    theta_hat = theta_hat + gamma_1 * time_step ** (-alpha) * grad
     theta_hat[theta_hat < 0] = 0
     theta_hat[theta_hat > 1] = 1
 
     # update theta_bar
-    theta_bar = (t - 1) * theta_bar / t + theta_hat / t
+    theta_bar = (time_step - 1) * theta_bar / time_step + theta_hat / time_step
 
     return theta_hat, theta_bar, grad
 
