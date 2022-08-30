@@ -16,28 +16,28 @@ from sklearn.preprocessing import PolynomialFeatures
 
 
 def get_contenders(
-    directory,
-    filename,
-    pca_obj_inst,
-    pca_obj_params,
-    jfm,
-    theta_bar,
-    time_step,
-    k,
-    S_t,
-    grad,
-    hess_sum,
-    grad_op_sum,
-    omega,
-    solver,
-    Pool,
-    tracking_Pool,
-    min_max_scaler,
-    standard_scaler,
-    pl,
-    param_value_dict,
-    json_param_file,
-    exp,
+        directory,
+        filename,
+        pca_obj_inst,
+        pca_obj_params,
+        jfm,
+        theta_bar,
+        time_step,
+        k,
+        S_t,
+        grad,
+        hess_sum,
+        grad_op_sum,
+        omega,
+        solver,
+        Pool,
+        tracking_Pool,
+        min_max_scaler,
+        standard_scaler,
+        pl,
+        param_value_dict,
+        json_param_file,
+        exp,
 ):
     X_t, d, features, n, params, v_hat = get_context_feature_matrix(
         Pool,
@@ -54,68 +54,36 @@ def get_contenders(
         theta_bar,
     )
 
-    # compute confidence_t and select S_t (symmetric group on [n], consisting of rankings: r ∈ S_n)
-    if time_step >= 1:
-        confidence_t = np.zeros(n)
-        hess = hessian(theta_bar, S_t, X_t)
-        hess_sum = hess_sum + hess
-        grad_op_sum = grad_op_sum + np.outer(grad, grad)
-        try:
-            V_hat = (1 / time_step) * grad_op_sum
-
-            V_hat = V_hat.astype("float64")
-
-            S_hat = (1 / time_step) * hess_sum
-
-            S_hat = S_hat.astype("float64")
-
-            S_hat_inv = np.linalg.inv(S_hat)
-
-            S_hat_inv = S_hat_inv.astype("float64")
-
-            Sigma_hat = (1 / time_step) * S_hat_inv * V_hat * S_hat_inv  # UCB
-
-            Sigma_hat_sqrt = sp.linalg.sqrtm(Sigma_hat)
-
-            for i in range(n):
-                M_i = np.exp(2 * np.dot(theta_bar, X_t[i, :])) * np.dot(
-                    X_t[i, :], X_t[i, :]
-                )
-
-                confidence_t[i] = omega * np.sqrt(
-                    (2 * np.log(time_step) + d + 2 * np.sqrt(d * np.log(time_step)))
-                    * np.linalg.norm(Sigma_hat_sqrt * M_i * Sigma_hat_sqrt, ord=2)
-                )
-
-            S_t = (-(v_hat + confidence_t)).argsort()[0:k]
-        except:
-            S_t = (-v_hat).argsort()[0:k]
-    else:
-        S_t = (-v_hat).argsort()[0:k]
-
-    if time_step >= 1:
-        confidence_t = confidence_t / max(confidence_t)
-        v_hat = v_hat / max(v_hat)
-        # print('\nconfidence_t\n',confidence_t,'\n')
-        # print('Index highest confidence_t =',confidence_t.argmax(axis=0),'\n')
-
-    contender_list = []
-    for i in range(k):
-        contender_list.append("contender_" + str(S_t[i]))
-
-    # print('\nV_hat\n',v_hat,'\n')
-    # print('Index highest V_hat =',v_hat.argmax(axis=0),'\n')
-
+    # Todo:
+    #  -Create a preselection class with run and initialization of the algorithms.
     discard = []
+    if time_step == 0:
+        S_t, contender_list, v_hat = preselection_UCB(S_t, X_t, d, grad, grad_op_sum, hess_sum, k, n,
+                                                      omega,
+                                                      theta_bar, time_step, v_hat)
+        if exp == "y":
+            for i in range(k):
+                contender_list[i] = f"contender_{i}"
 
-    # update contenders
-    if time_step >= 1:
+        genes = pws.set_genes(solver, json_param_file)
+        setParam.set_params("contender_0", genes, solver, json_param_file)
+        contender_list[0] = "contender_0"
+        Pool["contender_0"] = genes
+        tracking_Pool.info(Pool)
+
+    else:
+        # compute confidence_t and select S_t (symmetric group on [n], consisting of rankings: r ∈ S_n)
+        S_t, confidence_t, contender_list, v_hat = preselection_UCB(S_t, X_t, d, grad, grad_op_sum, hess_sum, k, n,
+                                                                    omega,
+                                                                    theta_bar, time_step, v_hat)
+
+        # update contenders
         for p1 in range(n):
             for p2 in range(n):
                 if (
-                    p2 != p1
-                    and v_hat[p2] - confidence_t[p2] >= v_hat[p1] + confidence_t[p1]
-                    and (not p1 in discard)
+                        p2 != p1
+                        and v_hat[p2] - confidence_t[p2] >= v_hat[p1] + confidence_t[p1]
+                        and (not p1 in discard)
                 ):
                     discard.append(p1)
                     break
@@ -246,34 +214,77 @@ def get_contenders(
                 k,
             )
 
-    if time_step == 0:
-
-        if exp == "y":
-            for i in range(k):
-                contender_list[i] = f"contender_{i}"
-
-        genes = pws.set_genes(solver, json_param_file)
-        setParam.set_params("contender_0", genes, solver, json_param_file)
-        contender_list[0] = "contender_0"
-        Pool["contender_0"] = genes
-        tracking_Pool.info(Pool)
-
     return X_t, contender_list, discard
 
 
+def preselection_UCB(S_t, X_t, d, grad, grad_op_sum, hess_sum, k, n, omega, theta_bar, time_step, v_hat):
+    if time_step >= 1:
+        confidence_t = np.zeros(n)
+        hess = hessian(theta_bar, S_t, X_t)
+        hess_sum = hess_sum + hess
+        grad_op_sum = grad_op_sum + np.outer(grad, grad)
+        try:
+            V_hat = (1 / time_step) * grad_op_sum
+
+            V_hat = V_hat.astype("float64")
+
+            S_hat = (1 / time_step) * hess_sum
+
+            S_hat = S_hat.astype("float64")
+
+            S_hat_inv = np.linalg.inv(S_hat)
+
+            S_hat_inv = S_hat_inv.astype("float64")
+
+            Sigma_hat = (1 / time_step) * S_hat_inv * V_hat * S_hat_inv  # UCB
+
+            Sigma_hat_sqrt = sp.linalg.sqrtm(Sigma_hat)
+
+            for i in range(n):
+                M_i = np.exp(2 * np.dot(theta_bar, X_t[i, :])) * np.dot(
+                    X_t[i, :], X_t[i, :]
+                )
+
+                confidence_t[i] = omega * np.sqrt(
+                    (2 * np.log(time_step) + d + 2 * np.sqrt(d * np.log(time_step)))
+                    * np.linalg.norm(Sigma_hat_sqrt * M_i * Sigma_hat_sqrt, ord=2)
+                )
+
+            S_t = (-(v_hat + confidence_t)).argsort()[0:k]
+        except:
+            S_t = (-v_hat).argsort()[0:k]
+
+        confidence_t = confidence_t / max(confidence_t)
+        v_hat = v_hat / max(v_hat)
+        contender_list = update_contender_list(S_t, k)
+        return S_t, confidence_t, contender_list, v_hat
+
+    else:
+        S_t = (-v_hat).argsort()[0:k]
+        contender_list = update_contender_list(S_t, k)
+        return S_t, contender_list, v_hat
+
+
+def update_contender_list(S_t, k):
+    contender_list = []
+    for i in range(k):
+        contender_list.append("contender_" + str(S_t[i]))
+    return contender_list
+
+
 def get_context_feature_matrix(
-    Pool,
-    directory,
-    filename,
-    jfm,
-    json_param_file,
-    min_max_scaler,
-    pca_obj_inst,
-    pca_obj_params,
-    pl,
-    solver,
-    standard_scaler,
-    theta_bar,
+        Pool,
+        directory,
+        filename,
+        jfm,
+        json_param_file,
+        min_max_scaler,
+        pca_obj_inst,
+        pca_obj_params,
+        pl,
+        solver,
+        standard_scaler,
+        theta_bar,
 ):
     # read and preprocess instance features (PCA)
     features = get_features(f"{directory}", f"{filename}")
@@ -313,20 +324,20 @@ asyncResults = []
 
 
 def contender_list_including_generated(
-    Pool,
-    solver,
-    pl,
-    params,
-    json_param_file,
-    theta_bar,
-    jfm,
-    min_max_scaler,
-    pca_obj_params,
-    standard_scaler,
-    pca_obj_inst,
-    directory,
-    filename,
-    k,
+        Pool,
+        solver,
+        pl,
+        params,
+        json_param_file,
+        theta_bar,
+        jfm,
+        min_max_scaler,
+        pca_obj_params,
+        standard_scaler,
+        pca_obj_inst,
+        directory,
+        filename,
+        k,
 ):
     contender_list = []
 
@@ -358,20 +369,20 @@ def save_result(result):
 
 
 def parallel_evolution_and_fitness(
-    k,
-    new_candidates_size,
-    S_t,
-    params,
-    solver,
-    param_value_dict,
-    json_param_file,
-    genes_set,
-    One_Hot_decode,
-    log_space_convert,
-    Pool,
-    pl,
-    best_candid,
-    second_candid,
+        k,
+        new_candidates_size,
+        S_t,
+        params,
+        solver,
+        param_value_dict,
+        json_param_file,
+        genes_set,
+        One_Hot_decode,
+        log_space_convert,
+        Pool,
+        pl,
+        best_candid,
+        second_candid,
 ):
     new_candidates = np.zeros(
         shape=(
@@ -448,19 +459,19 @@ def parallel_evolution_and_fitness(
 
 
 def evolution_and_fitness(
-    best_candid,
-    second_candid,
-    new_candidates,
-    new_candidates_size,
-    params_length,
-    genes_set,
-    One_Hot_decode,
-    log_space_convert,
-    solver,
-    json_param_file,
-    Pool,
-    param_value_dict,
-    pl,
+        best_candid,
+        second_candid,
+        new_candidates,
+        new_candidates_size,
+        params_length,
+        genes_set,
+        One_Hot_decode,
+        log_space_convert,
+        solver,
+        json_param_file,
+        Pool,
+        param_value_dict,
+        pl,
 ):
     # Generation approach based on genetic mechanism with mutation and random individuals
     new_candidates = np.zeros(shape=(new_candidates_size, new_candidates))
