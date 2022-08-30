@@ -30,286 +30,6 @@ from Configuration_Functions import tournament as solving
 from Configuration_Functions.random_genes import genes_set
 
 
-# Ordering the results with this
-def find_best(list1, number):
-    list_new = sorted(list1.items(), key=lambda kv: kv[1][1])
-    return list_new[:number]
-
-
-def validate_param_json(solver):
-    json_file_name = "params_" + str(solver)
-
-    with open(f"Configuration_Functions/{json_file_name}.json", "r") as f:
-        data = f.read()
-    params = json.loads(data)
-
-    param_names = list(params.keys())
-
-    with open("Configuration_Functions/paramSchema.json", "r") as f:
-        schema = f.read()
-    schemata = json.loads(schema)
-
-    def json_validation(jsonfile):
-        try:
-            validate(instance=jsonfile, schema=schemata)
-        except jsonschema.exceptions.ValidationError as err:
-            return False
-        return True
-
-    for pn in param_names:
-        valid = json_validation(params[pn])
-        if not valid:
-            print(params[pn])
-            print("Invalid JSON data structure. Exiting.")
-            sys.exit(0)
-
-    return params
-
-
-def non_nlock_read(output):
-    # fd = output.fileno()
-    # fl = fcntl.fcntl(fd, fcntl.F_GETFL)
-    # fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
-    try:
-        return output.readline()
-    except:
-        return ""
-
-
-def start_run(
-    filename,
-    timelimit,
-    params,
-    core,
-    sub_start,
-    pids,
-    results,
-    interim,
-    ev,
-    event,
-    new_time,
-):
-    sub_start[core] = time.process_time()
-    if args.baselineperf:
-        params = []
-    else:
-        pass
-    proc = solving.start(params, timelimit, filename, solver)
-    pid = proc.pid
-    pids[core] = pid
-    awaiting = True
-    while awaiting:
-
-        line = non_nlock_read(proc.stdout)
-
-        if line != b"":
-            output = solving.check_output(line, interim[core], solver)
-            if output != "No output" and output is not None:
-                interim[core] = output
-
-            if_solved = solving.check_if_solved(
-                line, results[core], proc, event, non_nlock_read, solver
-            )
-            if if_solved != "No output":
-                results[core], event[0] = if_solved
-
-        if results[core][0] != int(0):
-            sub_now = time.process_time()
-            results[core][1] = results[core][1] + sub_now - sub_start[core]
-            ev.set()
-            event[0] = 1
-            winner[0] = core
-            res[core] = results[core][:]
-            new_time[0] = results[core][1]
-            awaiting = False
-
-        if event[0] == 1 or ev.is_set():
-            awaiting = False
-            proc.terminate()
-            time.sleep(0.1)
-            if proc.poll() is None:
-                proc.kill()
-                time.sleep(0.1)
-                for index in range(n):
-                    if (
-                        sub_start[index] - time.process_time() >= new_time[0]
-                        and index != core
-                    ):
-                        os.kill(pids[index], signal.SIGKILL)
-                time.sleep(0.1)
-                try:
-                    os.kill(pid, signal.SIGKILL)
-                except:
-                    continue
-            if solver == "cadical":
-                time.sleep(0.1)
-                for index in range(n):
-                    if (
-                        sub_start[index] - time.process_time() >= new_time[0]
-                        and index != core
-                    ):
-                        try:
-                            os.system("killall cadical")
-                        except:
-                            continue
-
-
-def initialize_data_structures():
-    # Initialize pickled data
-    multiprocessing_event = mp.Event()
-    mp.freeze_support()
-    event = Manager().list([0])
-    winner = Manager().list([None])
-    res = Manager().list([[0, 0] for _ in range(n)])
-    interim = mp.Manager().list([0 for _ in range(n)])
-    if solver == "cadical":
-        interim = Manager().list([[0, 0, 0, 0, 0, 0] for _ in range(n)])
-    elif solver == "glucose":
-        interim = Manager().list([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0] for _ in range(n)])
-    elif solver == "cplex":
-        interim = Manager().list([[1000000, 100, 0, 0] for _ in range(n)])
-    new_time = Manager().list([args.timeout])
-    process_ids = Manager().list([[0] for _ in range(n)])
-    sub_start = Manager().list([[0] for _ in range(n)])
-
-    # Initialize parallel solving data
-    process = ["process_{0}".format(s) for s in range(n)]
-    results = [[0 for s in range(2)] for c in range(n)]
-    interim_res = [[0 for s in range(3)] for c in range(n)]
-    start = time.time()
-    winner_known = True
-
-    return (
-        multiprocessing_event,
-        event,
-        winner,
-        res,
-        interim,
-        new_time,
-        process_ids,
-        sub_start,
-        process,
-        results,
-        interim_res,
-        start,
-        winner_known,
-    )
-
-
-def tournament(
-    n,
-    contender_list,
-    start_run,
-    filename,
-    Pool,
-    sub_start,
-    pids,
-    results,
-    interim,
-    ev,
-    event,
-    new_time,
-):
-    for core in range(n):
-        contender = str(contender_list[core])
-
-        param_string = setParam.set_params(
-            contender, Pool[contender], solver, json_param_file, return_it=True
-        )
-
-        # noinspection PyTypeChecker
-        process[core] = mp.Process(
-            target=start_run,
-            args=[
-                filename,
-                args.timeout,
-                param_string,
-                core,
-                sub_start,
-                pids,
-                results,
-                interim,
-                ev,
-                event,
-                new_time,
-            ],
-        )
-
-    # Starting processes
-    for core in range(n):
-        process[core].start()
-
-    return process
-
-
-def watch_run(process, start, n, ev, pids):
-    x = 0
-    while any(proc.is_alive() for proc in process):
-        time.sleep(1)
-        x = x + 1
-        if x == 4:
-            x = 0
-        now = time.time()
-        currenttime = now - start
-        if currenttime >= args.timeout:
-            ev.set()
-            event[0] == 1  # Question: What is it's use?
-            for core in range(n):
-                try:
-                    os.kill(pids[core], signal.SIGKILL)
-                except:
-                    continue
-        if ev.is_set() or event[0] == 1:
-            if solver == "cadical":
-                time.sleep(10)
-                if any(proc.is_alive() for proc in process):
-                    try:
-                        os.system("killall cadical")
-                    except:
-                        continue
-
-
-def close_run(n, interim, process, res, interim_res):
-    # Prepare interim for processing (str -> int)
-    for core in range(n):
-        interim[core] = list(map(int, interim[core]))
-
-    # Close processes
-    for core in range(n):
-        process[core].join()
-
-    for core in range(n):
-        results[core][:] = res[core][:]
-        interim_res[core][:] = interim[core][:]
-
-    return results, interim_res
-
-
-def cppl_update(
-    contender_pool, contender_list, winner, theta_hat, theta_bar, S_t, X_t, gamma_1, time_step, alpha
-):
-    current_pool = []
-
-    for keys in contender_pool:
-        current_pool.append(contender_pool[keys])
-
-    current_contender_names = []
-    for i in range(len(contender_list)):
-        current_contender_names.append(str(contender_pool[contender_list[i]]))
-
-    contender_list = []
-    for i in range(n):
-        contender_list.append("contender_" + str(S_t[i]))
-
-    Y_t = int(contender_list[winner[0]][10:])
-    print(f"Winner is contender_{Y_t}")
-    [theta_hat, theta_bar, grad] = CPPLConfig.update(
-        Y_t, theta_hat, theta_bar, S_t, X_t, gamma_1, time_step, alpha
-    )
-
-    return current_pool, current_contender_names, theta_hat, theta_bar, grad, Y_t
-
-
 def _main():
     # global args, solver, directory, files, times_instances, problem_instance_list, tracking_times, tracking_pool, n, json_param_file, contender_pool, f, rounds_to_train, standard_scaler, pca_obj_inst, params, param_value_dict, min_max_scaler, pca_obj_params, jfm, theta_hat, theta_bar, grad_op_sum, hess_sum, omega, gamma_1, alpha, t, winner_index_time_step, S_t, grad, winner_known, dimensions
     global f
@@ -583,6 +303,7 @@ def _main():
     )
 
 
+# Todo: Create an initialization class to call all the initialization methods
 def _check_instance_feature_directory(args, directory):
     instance_feature_directory = pathlib.Path("Instance_Features")
     if instance_feature_directory.exists():
@@ -615,7 +336,7 @@ def _get_other_params(args, no_comp_pca_features, num_pca_params_components):
         dimensions = no_comp_pca_features * num_pca_params_components
     elif jfm == "polynomial":
         for index_pca_params in range(
-            (no_comp_pca_features + num_pca_params_components) - 2
+                (no_comp_pca_features + num_pca_params_components) - 2
         ):
             dimensions = dimensions + 3 + index_pca_params
     # theta_hat = np.random.rand(dimensions)
@@ -686,14 +407,14 @@ def _init_pca_features(args, features):
 def _init_features(directory):
     # read features
     if os.path.isfile(
-        "Instance_Features/training_features_" + str(directory)[2:-1] + ".csv"
+            "Instance_Features/training_features_" + str(directory)[2:-1] + ".csv"
     ):
         pass
     else:
         print(
             "\n\nThere needs to be a file with training instance features "
             "named << training_features_" + str(directory)[2:-1] + ".csv >> in"
-            " the directory Instance_Features\n\n"
+                                                                   " the directory Instance_Features\n\n"
         )
         sys.exit(0)
     features = []
@@ -805,6 +526,288 @@ def _init_pool(args, json_param_file, solver):
     return contender_pool
 
 
+def _init_data_structures():
+    # Initialize pickled data
+    multiprocessing_event = mp.Event()
+    mp.freeze_support()
+    event = Manager().list([0])
+    winner = Manager().list([None])
+    res = Manager().list([[0, 0] for _ in range(n)])
+    interim = mp.Manager().list([0 for _ in range(n)])
+    if solver == "cadical":
+        interim = Manager().list([[0, 0, 0, 0, 0, 0] for _ in range(n)])
+    elif solver == "glucose":
+        interim = Manager().list([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0] for _ in range(n)])
+    elif solver == "cplex":
+        interim = Manager().list([[1000000, 100, 0, 0] for _ in range(n)])
+    new_time = Manager().list([args.timeout])
+    process_ids = Manager().list([[0] for _ in range(n)])
+    sub_start = Manager().list([[0] for _ in range(n)])
+
+    # Initialize parallel solving data
+    process = ["process_{0}".format(s) for s in range(n)]
+    results = [[0 for s in range(2)] for c in range(n)]
+    interim_res = [[0 for s in range(3)] for c in range(n)]
+    start = time.time()
+    winner_known = True
+
+    return (
+        multiprocessing_event,
+        event,
+        winner,
+        res,
+        interim,
+        new_time,
+        process_ids,
+        sub_start,
+        process,
+        results,
+        interim_res,
+        start,
+        winner_known,
+    )
+
+
+# Ordering the results with this
+def find_best(list1, number):
+    list_new = sorted(list1.items(), key=lambda kv: kv[1][1])
+    return list_new[:number]
+
+
+# Todo: create different class to validate json
+def validate_param_json(solver):
+    json_file_name = "params_" + str(solver)
+
+    with open(f"Configuration_Functions/{json_file_name}.json", "r") as f:
+        data = f.read()
+    params = json.loads(data)
+
+    param_names = list(params.keys())
+
+    with open("Configuration_Functions/paramSchema.json", "r") as f:
+        schema = f.read()
+    schemata = json.loads(schema)
+
+    def json_validation(jsonfile):
+        try:
+            validate(instance=jsonfile, schema=schemata)
+        except jsonschema.exceptions.ValidationError as err:
+            return False
+        return True
+
+    for pn in param_names:
+        valid = json_validation(params[pn])
+        if not valid:
+            print(params[pn])
+            print("Invalid JSON data structure. Exiting.")
+            sys.exit(0)
+
+    return params
+
+
+# Todo: Create a different class or tournament runs
+def non_nlock_read(output):
+    # fd = output.fileno()
+    # fl = fcntl.fcntl(fd, fcntl.F_GETFL)
+    # fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+    try:
+        return output.readline()
+    except:
+        return ""
+
+
+def start_run(
+        filename,
+        timelimit,
+        params,
+        core,
+        sub_start,
+        pids,
+        results,
+        interim,
+        ev,
+        event,
+        new_time,
+):
+    sub_start[core] = time.process_time()
+    if args.baselineperf:
+        params = []
+    else:
+        pass
+    proc = solving.start(params, timelimit, filename, solver)
+    pid = proc.pid
+    pids[core] = pid
+    awaiting = True
+    while awaiting:
+
+        line = non_nlock_read(proc.stdout)
+
+        if line != b"":
+            output = solving.check_output(line, interim[core], solver)
+            if output != "No output" and output is not None:
+                interim[core] = output
+
+            if_solved = solving.check_if_solved(
+                line, results[core], proc, event, non_nlock_read, solver
+            )
+            if if_solved != "No output":
+                results[core], event[0] = if_solved
+
+        if results[core][0] != int(0):
+            sub_now = time.process_time()
+            results[core][1] = results[core][1] + sub_now - sub_start[core]
+            ev.set()
+            event[0] = 1
+            winner[0] = core
+            res[core] = results[core][:]
+            new_time[0] = results[core][1]
+            awaiting = False
+
+        if event[0] == 1 or ev.is_set():
+            awaiting = False
+            proc.terminate()
+            time.sleep(0.1)
+            if proc.poll() is None:
+                proc.kill()
+                time.sleep(0.1)
+                for index in range(n):
+                    if (
+                            sub_start[index] - time.process_time() >= new_time[0]
+                            and index != core
+                    ):
+                        os.kill(pids[index], signal.SIGKILL)
+                time.sleep(0.1)
+                try:
+                    os.kill(pid, signal.SIGKILL)
+                except:
+                    continue
+            if solver == "cadical":
+                time.sleep(0.1)
+                for index in range(n):
+                    if (
+                            sub_start[index] - time.process_time() >= new_time[0]
+                            and index != core
+                    ):
+                        try:
+                            os.system("killall cadical")
+                        except:
+                            continue
+
+
+def tournament(
+        n,
+        contender_list,
+        start_run,
+        filename,
+        Pool,
+        sub_start,
+        pids,
+        results,
+        interim,
+        ev,
+        event,
+        new_time,
+):
+    for core in range(n):
+        contender = str(contender_list[core])
+
+        param_string = setParam.set_params(
+            contender, Pool[contender], solver, json_param_file, return_it=True
+        )
+
+        # noinspection PyTypeChecker
+        process[core] = mp.Process(
+            target=start_run,
+            args=[
+                filename,
+                args.timeout,
+                param_string,
+                core,
+                sub_start,
+                pids,
+                results,
+                interim,
+                ev,
+                event,
+                new_time,
+            ],
+        )
+
+    # Starting processes
+    for core in range(n):
+        process[core].start()
+
+    return process
+
+
+def watch_run(process, start, n, ev, pids):
+    x = 0
+    while any(proc.is_alive() for proc in process):
+        time.sleep(1)
+        x = x + 1
+        if x == 4:
+            x = 0
+        now = time.time()
+        currenttime = now - start
+        if currenttime >= args.timeout:
+            ev.set()
+            event[0] == 1  # Question: What is it's use?
+            for core in range(n):
+                try:
+                    os.kill(pids[core], signal.SIGKILL)
+                except:
+                    continue
+        if ev.is_set() or event[0] == 1:
+            if solver == "cadical":
+                time.sleep(10)
+                if any(proc.is_alive() for proc in process):
+                    try:
+                        os.system("killall cadical")
+                    except:
+                        continue
+
+
+def close_run(n, interim, process, res, interim_res):
+    # Prepare interim for processing (str -> int)
+    for core in range(n):
+        interim[core] = list(map(int, interim[core]))
+
+    # Close processes
+    for core in range(n):
+        process[core].join()
+
+    for core in range(n):
+        results[core][:] = res[core][:]
+        interim_res[core][:] = interim[core][:]
+
+    return results, interim_res
+
+
+def cppl_update(
+        contender_pool, contender_list, winner, theta_hat, theta_bar, S_t, X_t, gamma_1, time_step, alpha
+):
+    current_pool = []
+
+    for keys in contender_pool:
+        current_pool.append(contender_pool[keys])
+
+    current_contender_names = []
+    for i in range(len(contender_list)):
+        current_contender_names.append(str(contender_pool[contender_list[i]]))
+
+    contender_list = []
+    for i in range(n):
+        contender_list.append("contender_" + str(S_t[i]))
+
+    Y_t = int(contender_list[winner[0]][10:])
+    print(f"Winner is contender_{Y_t}")
+    [theta_hat, theta_bar, grad] = CPPLConfig.update(
+        Y_t, theta_hat, theta_bar, S_t, X_t, gamma_1, time_step, alpha
+    )
+
+    return current_pool, current_contender_names, theta_hat, theta_bar, grad, Y_t
+
+
 if __name__ == "__main__":
 
     (
@@ -841,6 +844,7 @@ if __name__ == "__main__":
         winner_known,
     ) = _main()
 
+    # Todo: Create a class CPPL which contains def run, cppl_update.
     run = True
 
     while run:
@@ -934,7 +938,7 @@ if __name__ == "__main__":
                 interim_res,
                 start,
                 winner_known,
-            ) = initialize_data_structures()
+            ) = _init_data_structures()
 
             process = tournament(
                 n=n,
