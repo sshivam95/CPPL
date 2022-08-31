@@ -80,6 +80,8 @@ class CPPL(object):
         # initialize features from instance files
         self._init_features()
 
+        # TODO add other initialization methods
+
     def _check_arguments(self):
 
         # Check Instance problem directory in arguments
