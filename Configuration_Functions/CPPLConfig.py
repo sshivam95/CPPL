@@ -8,7 +8,7 @@ import random
 from Configuration_Functions import log_on_huge_params
 from Configuration_Functions import pws
 from Configuration_Functions import random_genes
-from Configuration_Functions import setParam
+from Configuration_Functions import set_param
 import numpy as np
 import scipy as sp
 from sklearn import preprocessing
@@ -65,8 +65,9 @@ def get_contenders(
             for i in range(subset_size):
                 contender_list[i] = f"contender_{i}"
 
-        genes = pws.set_genes(solver, json_param_file)
-        setParam.set_params("contender_0", genes, solver, json_param_file)
+        genes = pws.set_genes(json_param_file)
+        set_param.set_contender_params("contender_0", genes,
+                                       json_param_file)
         contender_list[0] = "contender_0"
         Pool["contender_0"] = genes
         tracking_Pool.info(Pool)
@@ -191,8 +192,9 @@ def get_contenders(
                 else:
                     discard.tolist()
 
-                setParam.set_params(
-                    "contender_" + str(discard[i]), genes, solver, json_param_file
+                set_param.set_contender_params(
+                    "contender_" + str(discard[i]), genes,
+                    json_param_file
                 )
                 Pool["contender_" + str(discard[i])] = genes
                 tracking_Pool.info(Pool)

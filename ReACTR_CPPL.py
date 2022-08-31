@@ -25,7 +25,7 @@ from Configuration_Functions import file_logging
 from Configuration_Functions import log_on_huge_params
 from Configuration_Functions import pws
 from Configuration_Functions import random_genes
-from Configuration_Functions import setParam
+from Configuration_Functions import set_param
 from Configuration_Functions import tournament as solving
 from Configuration_Functions.random_genes import genes_set
 
@@ -36,7 +36,7 @@ def _main():
     # Parse directory of instances, solver, max. time_step for single solving
     parser = argparse.ArgumentParser(description="Start Tournaments")
     parser.add_argument(
-        "-dimensions",
+        "-d",
         "--directory",
         type=str,
         default="No Problem Instance Directory given",
@@ -152,16 +152,16 @@ def _main():
         help="""Mode of the joined feature map""",
     )
     parser.add_argument(
-        "-omega", "--omega", type=float, default=10, help="""Omega parameter for CPPL"""
+        "-omega", "--omega", type=float, default=0.001, help="""Omega parameter for CPPL"""
     )
     parser.add_argument(
-        "-gamma", "--gamma", type=float, default=11, help="""Gamma parameter for CPPL"""
+        "-gamma", "--gamma", type=float, default=1, help="""Gamma parameter for CPPL"""
     )
     parser.add_argument(
         "-alpha",
         "--alpha",
         type=float,
-        default=0.1,
+        default=0.2,
         help="""Alpha parameter for CPPL""",
     )
     parser.add_argument(
@@ -498,18 +498,19 @@ def _init_pool(args, json_param_file, solver):
         if args.baselineperf:
             print("Baseline Performance Run (only default parameters)")
             for key in contender_pool:
-                contender_pool[key] = pws.set_genes(solver, json_param_file)
-                setParam.set_params(key, contender_pool[key], solver, json_param_file)
+                contender_pool[key] = pws.set_genes(json_param_file)
+                set_param.set_contender_params(key, contender_pool[key],
+                                               json_param_file)
         else:
             for key in contender_pool:
                 contender_pool[key] = genes_set(solver)
-                setParam.set_params(key, contender_pool[key], solver, json_param_file)
+                set_param.set_contender_params(key, contender_pool[key],
+                                               json_param_file)
             if args.pws is not None:
-                contender_pool["contender_0"] = pws.set_genes(solver, json_param_file)
-                setParam.set_params(
+                contender_pool["contender_0"] = pws.set_genes(json_param_file)
+                set_param.set_contender_params(
                     "contender_0",
                     contender_pool["contender_0"],
-                    solver,
                     json_param_file,
                 )
 
@@ -522,7 +523,8 @@ def _init_pool(args, json_param_file, solver):
         with open(f"{pool_file}", "r") as file:
             contender_pool = eval(file.read())
             for key in contender_pool:
-                setParam.set_params(key, contender_pool[key], solver, json_param_file)
+                set_param.set_contender_params(key, contender_pool[key],
+                                               json_param_file)
 
     return contender_pool
 
@@ -712,8 +714,9 @@ def tournament(
     for core in range(n):
         contender = str(contender_list[core])
 
-        param_string = setParam.set_params(
-            contender, Pool[contender], solver, json_param_file, return_it=True
+        param_string = set_param.set_contender_params(
+            contender, Pool[contender],
+            json_param_file, return_it=True
         )
 
         # noinspection PyTypeChecker

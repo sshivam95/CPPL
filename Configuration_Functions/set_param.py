@@ -3,10 +3,10 @@ import jsonschema
 from jsonschema import validate
 
 
-def set_params(contender, genes, solver, json_param_file, return_it=False):
+def set_contender_params(contender_index, genes, solver_parameters, return_it=False):
 
-    paramNames = list(json_param_file.keys())
-    params = json_param_file
+    paramNames = list(solver_parameters.keys())
+    params = solver_parameters
 
     parameter_set = [0 for i in range(len(genes))]
 
@@ -14,12 +14,12 @@ def set_params(contender, genes, solver, json_param_file, return_it=False):
         if "flag" in params[paramNames[i]]:
             parameter_set[i] = str(genes[i])
         else:
-            if json_param_file[paramNames[i]]["paramtype"] == "discrete":
+            if solver_parameters[paramNames[i]]["paramtype"] == "discrete":
                 parameter_set[i] = str(paramNames[i]) + str(int(genes[i]))
             else:
                 parameter_set[i] = str(paramNames[i]) + str(genes[i])
 
-    with open("ParamPool/" + str(contender), "w") as file:
+    with open("ParamPool/" + str(contender_index), "w") as file:
         print(" ".join(parameter_set), file=file)
 
     if return_it:
