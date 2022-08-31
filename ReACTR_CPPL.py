@@ -31,8 +31,8 @@ from Configuration_Functions.random_genes import genes_set
 
 
 def _main():
-    # global args, solver, directory, files, times_instances, problem_instance_list, tracking_times, tracking_pool, n, json_param_file, contender_pool, f, rounds_to_train, standard_scaler, pca_obj_inst, params, param_value_dict, min_max_scaler, pca_obj_params, jfm, theta_hat, theta_bar, grad_op_sum, hess_sum, omega, gamma_1, alpha, t, winner_index_time_step, S_t, grad, winner_known, dimensions
-    global f
+    # global args, solver, directory, files, times_instances, problem_instance_list, tracking_times, tracking_pool, num_parameters, json_param_file, contender_pool, f, rounds_to_train, standard_scaler, pca_obj_inst, params, parameter_value_dict, min_max_scaler, pca_obj_params, jfm, theta_hat, theta_bar, grad_op_sum, hess_sum, omega, gamma_1, alpha, t, winner_index_time_step, S_t, grad, winner_known, dimensions
+    global training_files
     # Parse directory of instances, solver, max. time_step for single solving
     parser = argparse.ArgumentParser(description="Start Tournaments")
     parser.add_argument(
@@ -210,11 +210,11 @@ def _main():
         filename=args.times_file_name, logger_name="ReACTR_CPPL", level="INFO"
     )
     tracking_pool = file_logging.tracking_files(
-        filename="contender_pool.json", logger_name="ReACTR_Pool", level="INFO"
+        filename="Pool.json", logger_name="ReACTR_Pool", level="INFO"
     )
 
     # Count available cores
-    n = mp.cpu_count()
+    num_parameters = mp.cpu_count()  # Total number of Parameters in set P
     _init_parameter_directory()
     json_param_file = validate_param_json(solver=solver)
 
@@ -226,30 +226,31 @@ def _main():
     tracking_pool.info(contender_pool)
     # If training is required, prepare
     if args.train_number is not None:
-        for r, d, f in sorted(os.walk(directory)):
+        for root, training_directory, training_files in sorted(os.walk(directory)):
             continue
     rounds_to_train = int(args.train_rounds)
+
     ###################################################################
     _check_instance_feature_directory(
-        args, directory
+        args=args, directory=directory
     )  # Check if the instance feature directory available
 
     directory, features, standard_scaler = _init_features(
-        directory
+        directory=directory
     )  # initialize features from instance files
 
     no_comp_pca_features, pca_obj_inst = _init_pca_features(
-        args, features
+        args=args, features=features
     )  # initialize pca features
 
     # Get parameters and apply PCA
     (
         min_max_scaler,
         num_pca_params_components,
-        param_value_dict,
+        parameter_value_dict,
         params,
         pca_obj_params,
-    ) = _get_pca_params(args, contender_pool, json_param_file, solver)
+    ) = _get_pca_params(args=args, contender_pool=contender_pool, json_param_file=json_param_file, solver=solver)
 
     # other parameters
     (
@@ -276,15 +277,15 @@ def _main():
         problem_instance_list,
         tracking_times,
         tracking_pool,
-        n,
+        num_parameters,
         json_param_file,
         contender_pool,
-        f,
+        training_files,
         rounds_to_train,
         standard_scaler,
         pca_obj_inst,
         params,
-        param_value_dict,
+        parameter_value_dict,
         min_max_scaler,
         pca_obj_params,
         jfm,
@@ -329,7 +330,7 @@ def _check_instance_feature_directory(args, directory):
 
 def _get_other_params(args, no_comp_pca_features, num_pca_params_components):
     jfm = args.jfm  # 'polynomial'
-    dimensions = 4  # by default
+    dimensions = 4  # by default # Corresponds to n different parameterizations (Pool of candidates)
     if jfm == "concatenation":
         dimensions = no_comp_pca_features + num_pca_params_components
     elif jfm == "kronecker":
@@ -340,17 +341,17 @@ def _get_other_params(args, no_comp_pca_features, num_pca_params_components):
         ):
             dimensions = dimensions + 3 + index_pca_params
     # theta_hat = np.random.rand(dimensions)
-    theta_hat = np.zeros(dimensions)
-    theta_bar = theta_hat
+    theta_hat = np.zeros(dimensions) #Line 2 CPPL (random Parameter Vector)
+    theta_bar = theta_hat # Line 3 CPPl
     grad_op_sum = np.zeros((dimensions, dimensions))
     hess_sum = np.zeros((dimensions, dimensions))
-    omega = args.omega
-    gamma_1 = args.gamma
-    alpha = args.alpha
-    time_step = 0
+    omega = args.omega # Parameter of CPPL *Helps determine the confidence intervals (Best value = 0.001)
+    gamma_1 = args.gamma # Parameter CPPL (Best value = 1)
+    alpha = args.alpha # Parameter CPPL (Best value = 0.2)
+    time_step = 0 # initial time step = 0 where initialization takes place
     Y_t = 0
-    S_t = []
-    grad = np.zeros(dimensions)
+    S_t = [] # Subset of contenders Line 9 of CPPL
+    grad = np.zeros(dimensions) # Gradient ∇L in line 11 to update ˆθt
     return (
         S_t,
         Y_t,
@@ -368,13 +369,13 @@ def _get_other_params(args, no_comp_pca_features, num_pca_params_components):
 
 
 def _get_pca_params(args, contender_pool, json_param_file, solver):
-    params, param_value_dict = CPPLConfig.read_parametrizations(contender_pool, solver)
+    params, parameter_value_dict = CPPLConfig.read_parameters(contender_pool, solver)
     params = np.asarray(params)
     all_min, all_max = random_genes.get_all_min_and_max(json_param_file)
-    all_min, _ = CPPLConfig.read_parametrizations(
+    all_min, _ = CPPLConfig.read_parameters(
         contender_pool, solver, contender=all_min
     )
-    all_max, _ = CPPLConfig.read_parametrizations(
+    all_max, _ = CPPLConfig.read_parameters(
         contender_pool, solver, contender=all_max
     )
     params = np.append(params, [all_min], axis=0)
@@ -390,7 +391,7 @@ def _get_pca_params(args, contender_pool, json_param_file, solver):
     return (
         min_max_scaler,
         num_pca_params_components,
-        param_value_dict,
+        parameter_value_dict,
         params,
         pca_obj_params,
     )
@@ -513,12 +514,12 @@ def _init_pool(args, json_param_file, solver):
                 )
 
     elif args.data == "y":
-        Pool_file = "contender_pool.json"
+        pool_file = "Pool.json"
         if args.exp is None:
-            Pool_file = "contender_pool.json"
+            pool_file = "Pool.json"
         elif args.exp == "y":
-            Pool_file = f"Pool_exp_{solver}.json"
-        with open(f"{Pool_file}", "r") as file:
+            pool_file = f"Pool_exp_{solver}.json"
+        with open(f"{pool_file}", "r") as file:
             contender_pool = eval(file.read())
             for key in contender_pool:
                 setParam.set_params(key, contender_pool[key], solver, json_param_file)
@@ -532,22 +533,22 @@ def _init_data_structures():
     mp.freeze_support()
     event = Manager().list([0])
     winner = Manager().list([None])
-    res = Manager().list([[0, 0] for _ in range(n)])
-    interim = mp.Manager().list([0 for _ in range(n)])
+    res = Manager().list([[0, 0] for _ in range(num_parameters)])
+    interim = mp.Manager().list([0 for _ in range(num_parameters)])
     if solver == "cadical":
-        interim = Manager().list([[0, 0, 0, 0, 0, 0] for _ in range(n)])
+        interim = Manager().list([[0, 0, 0, 0, 0, 0] for _ in range(num_parameters)])
     elif solver == "glucose":
-        interim = Manager().list([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0] for _ in range(n)])
+        interim = Manager().list([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0] for _ in range(num_parameters)])
     elif solver == "cplex":
-        interim = Manager().list([[1000000, 100, 0, 0] for _ in range(n)])
+        interim = Manager().list([[1000000, 100, 0, 0] for _ in range(num_parameters)])
     new_time = Manager().list([args.timeout])
-    process_ids = Manager().list([[0] for _ in range(n)])
-    sub_start = Manager().list([[0] for _ in range(n)])
+    process_ids = Manager().list([[0] for _ in range(num_parameters)])
+    sub_start = Manager().list([[0] for _ in range(num_parameters)])
 
     # Initialize parallel solving data
-    process = ["process_{0}".format(s) for s in range(n)]
-    results = [[0 for s in range(2)] for c in range(n)]
-    interim_res = [[0 for s in range(3)] for c in range(n)]
+    process = ["process_{0}".format(s) for s in range(num_parameters)]
+    results = [[0 for s in range(2)] for c in range(num_parameters)]
+    interim_res = [[0 for s in range(3)] for c in range(num_parameters)]
     start = time.time()
     winner_known = True
 
@@ -670,7 +671,7 @@ def start_run(
             if proc.poll() is None:
                 proc.kill()
                 time.sleep(0.1)
-                for index in range(n):
+                for index in range(num_parameters):
                     if (
                             sub_start[index] - time.process_time() >= new_time[0]
                             and index != core
@@ -683,7 +684,7 @@ def start_run(
                     continue
             if solver == "cadical":
                 time.sleep(0.1)
-                for index in range(n):
+                for index in range(num_parameters):
                     if (
                             sub_start[index] - time.process_time() >= new_time[0]
                             and index != core
@@ -796,7 +797,7 @@ def cppl_update(
         current_contender_names.append(str(contender_pool[contender_list[i]]))
 
     contender_list = []
-    for i in range(n):
+    for i in range(num_parameters):
         contender_list.append("contender_" + str(S_t[i]))
 
     Y_t = int(contender_list[winner[0]][10:])
@@ -818,7 +819,7 @@ if __name__ == "__main__":
         problem_instance_list,
         tracking_times,
         tracking_pool,
-        n,
+        num_parameters,
         json_param_file,
         contender_pool,
         training_files,
@@ -826,7 +827,7 @@ if __name__ == "__main__":
         standard_scaler,
         pca_obj_inst,
         params,
-        param_value_dict,
+        parameter_value_dict,
         min_max_scaler,
         pca_obj_params,
         jfm,
@@ -879,7 +880,7 @@ if __name__ == "__main__":
                     jfm=jfm,
                     theta_bar=theta_bar,
                     time_step=time_step,
-                    k=n,
+                    subset_size=num_parameters,
                     S_t=S_t,
                     grad=grad,
                     hess_sum=hess_sum,
@@ -891,7 +892,7 @@ if __name__ == "__main__":
                     min_max_scaler=min_max_scaler,
                     standard_scaler=standard_scaler,
                     pl=float(args.paramlimit),
-                    param_value_dict=param_value_dict,
+                    param_value_dict=parameter_value_dict,
                     json_param_file=json_param_file,
                     exp=args.exp,
                 )
@@ -920,7 +921,7 @@ if __name__ == "__main__":
                     pca_obj_inst,
                     directory,
                     filename,
-                    n,
+                    num_parameters,
                 )
 
             # Start run
@@ -941,7 +942,7 @@ if __name__ == "__main__":
             ) = _init_data_structures()
 
             process = tournament(
-                n=n,
+                n=num_parameters,
                 contender_list=contender_list,
                 start_run=start_run,
                 filename=file_path,
@@ -967,9 +968,9 @@ if __name__ == "__main__":
             print(".\n.\n.\n.\n")
 
             # Observe the run and stop it if one parameterization finished
-            watch_run(process, start, n, multiprocess_event, process_ids)
+            watch_run(process, start, num_parameters, multiprocess_event, process_ids)
 
-            results, interim_res = close_run(n, interim, process, res, interim_res)
+            results, interim_res = close_run(num_parameters, interim, process, res, interim_res)
 
             print(f"Instance {filename} was finished!\n")
 

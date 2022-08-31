@@ -23,7 +23,7 @@ def get_contenders(
         jfm,
         theta_bar,
         time_step,
-        k,
+        subset_size,
         S_t,
         grad,
         hess_sum,
@@ -58,11 +58,11 @@ def get_contenders(
     #  -Create a preselection class with run and initialization of the algorithms.
     discard = []
     if time_step == 0:
-        S_t, contender_list, v_hat = preselection_UCB(S_t, X_t, d, grad, grad_op_sum, hess_sum, k, n,
+        S_t, contender_list, v_hat = preselection_UCB(S_t, X_t, d, grad, grad_op_sum, hess_sum, subset_size, n,
                                                       omega,
                                                       theta_bar, time_step, v_hat)
         if exp == "y":
-            for i in range(k):
+            for i in range(subset_size):
                 contender_list[i] = f"contender_{i}"
 
         genes = pws.set_genes(solver, json_param_file)
@@ -72,8 +72,8 @@ def get_contenders(
         tracking_Pool.info(Pool)
 
     else:
-        # compute confidence_t and select S_t (symmetric group on [n], consisting of rankings: r ∈ S_n)
-        S_t, confidence_t, contender_list, v_hat = preselection_UCB(S_t, X_t, d, grad, grad_op_sum, hess_sum, k, n,
+        # compute confidence_t and select S_t (symmetric group on [num_parameters], consisting of rankings: r ∈ S_n)
+        S_t, confidence_t, contender_list, v_hat = preselection_UCB(S_t, X_t, d, grad, grad_op_sum, hess_sum, subset_size, n,
                                                                     omega,
                                                                     theta_bar, time_step, v_hat)
 
@@ -101,18 +101,18 @@ def get_contenders(
             # with randomness
             new_candidates_size = 1000
 
-            parametrizations, _ = read_parametrizations(Pool, solver)
+            random_parameters, _ = read_parameters(Pool, solver)
 
-            parametrizations = np.asarray(parametrizations)
+            random_parameters = np.asarray(random_parameters)
 
-            parametrizations = log_on_huge_params.log_space_convert(
-                pl, parametrizations, json_param_file
+            random_parameters = log_on_huge_params.log_space_convert(
+                pl, random_parameters, json_param_file
             )
 
             best_candid = log_on_huge_params.log_space_convert(
                 pl,
                 random_genes.one_hot_decode(
-                    parametrizations[
+                    random_parameters[
                         S_t[0],
                     ],
                     solver,
@@ -126,7 +126,7 @@ def get_contenders(
             second_candid = log_on_huge_params.log_space_convert(
                 pl,
                 random_genes.one_hot_decode(
-                    parametrizations[
+                    random_parameters[
                         S_t[1],
                     ],
                     solver,
@@ -138,7 +138,7 @@ def get_contenders(
             )
 
             new_candidates_transformed, new_candidates = parallel_evolution_and_fitness(
-                k,
+                subset_size,
                 new_candidates_size,
                 S_t,
                 params,
@@ -211,13 +211,13 @@ def get_contenders(
                 pca_obj_inst,
                 directory,
                 filename,
-                k,
+                subset_size,
             )
 
     return X_t, contender_list, discard
 
 
-def preselection_UCB(S_t, X_t, d, grad, grad_op_sum, hess_sum, k, n, omega, theta_bar, time_step, v_hat):
+def preselection_UCB(S_t, X_t, d, grad, grad_op_sum, hess_sum, subset_size, n, omega, theta_bar, time_step, v_hat):
     if time_step >= 1:
         confidence_t = np.zeros(n)
         hess = hessian(theta_bar, S_t, X_t)
@@ -248,20 +248,20 @@ def preselection_UCB(S_t, X_t, d, grad, grad_op_sum, hess_sum, k, n, omega, thet
                 confidence_t[i] = omega * np.sqrt(
                     (2 * np.log(time_step) + d + 2 * np.sqrt(d * np.log(time_step)))
                     * np.linalg.norm(Sigma_hat_sqrt * M_i * Sigma_hat_sqrt, ord=2)
-                )
+                ) # Equation of confidence bound in section 5.3 of https://arxiv.org/pdf/2002.04275.pdf
 
-            S_t = (-(v_hat + confidence_t)).argsort()[0:k]
+            S_t = (-(v_hat + confidence_t)).argsort()[0:subset_size]
         except:
-            S_t = (-v_hat).argsort()[0:k]
+            S_t = (-v_hat).argsort()[0:subset_size]
 
         confidence_t = confidence_t / max(confidence_t)
         v_hat = v_hat / max(v_hat)
-        contender_list = update_contender_list(S_t, k)
+        contender_list = update_contender_list(S_t, subset_size)
         return S_t, confidence_t, contender_list, v_hat
 
     else:
-        S_t = (-v_hat).argsort()[0:k]
-        contender_list = update_contender_list(S_t, k)
+        S_t = (-v_hat).argsort()[0:subset_size]
+        contender_list = update_contender_list(S_t, subset_size)
         return S_t, contender_list, v_hat
 
 
@@ -291,7 +291,7 @@ def get_context_feature_matrix(
     features = standard_scaler.transform(features.reshape(1, -1))
     features = pca_obj_inst.transform(features)
     # get parametrization
-    params, _ = read_parametrizations(Pool, solver)
+    params, _ = read_parameters(Pool, solver)
     params = np.asarray(params)
     params_original_size = params.shape[1]
     params = log_on_huge_params.log_space_convert(pl, params, json_param_file)
@@ -299,7 +299,7 @@ def get_context_feature_matrix(
     # PCA on parametrization
     params_transformed = pca_obj_params.transform(params)
     # construct X_t (context specific (instance information) feature matrix ( and parameterization information))
-    n = params.shape[0]
+    n = params.shape[0] # Distinct Parameters
     d = len(theta_bar)
     X_t = np.zeros((n, d))
     for i in range(n):
@@ -314,7 +314,7 @@ def get_context_feature_matrix(
     # Normalizing the context specific features
     preprocessing.normalize(X_t, norm="max", copy=False)
     # compute estimated contextualized utility parameters (v_hat)
-    v_hat = np.zeros(n)
+    v_hat = np.zeros(n)  # Line 7 in CPPL algorithm
     for i in range(n):
         v_hat[i] = np.exp(np.inner(theta_bar, X_t[i, :]))
     return X_t, d, features, n, params, v_hat
@@ -479,7 +479,7 @@ def evolution_and_fitness(
         random_individual = random.uniform(0, 1)
         next_candid = np.zeros(params_length)
         contender = genes_set(solver, json_param_file)
-        genes, _ = read_parametrizations(Pool, solver, contender, json_param_file)
+        genes, _ = read_parameters(Pool, solver, contender, json_param_file)
         mutation_genes = random_genes.one_hot_decode(
             genes,
             solver,
@@ -600,16 +600,17 @@ def param_read_from_dict(solver, contender, json_param_file, paramNames):
     return new_params, param_value_dict
 
 
-def read_parametrizations(pool, solver, contender=None, json_param_file=None):
-    paramNames, params = validate_json_file(json_param_file, solver)
+def read_parameters(pool, solver, contender=None, json_param_file=None):
+    global parameter_value_dict
+    paramNames, params = random_genes.validate_json_file(json_param_file, solver)
 
     if contender is not None:
 
-        new_params, param_value_dict = param_read_from_dict(
+        new_params, parameter_value_dict = param_read_from_dict(
             solver, contender, params, paramNames
         )
 
-        return np.asarray(new_params), param_value_dict
+        return np.asarray(new_params), parameter_value_dict
 
     elif contender is None:
 
@@ -623,13 +624,13 @@ def read_parametrizations(pool, solver, contender=None, json_param_file=None):
 
         P = []
         for key in newPool:
-            new_params, param_value_dict = param_read_from_dict(
+            new_params, parameter_value_dict = param_read_from_dict(
                 solver, newPool[key], params, paramNames
             )
 
             P.append(new_params)
 
-        return np.asarray(P), param_value_dict
+        return np.asarray(P), parameter_value_dict
 
 
 def join_feature_map(x, y, mode):
@@ -672,26 +673,3 @@ def hessian(theta, S, X):
         denominator_2 = denominator_2 + np.exp(np.dot(theta, X[l, :]))
     s_2 = num_2 / denominator_2
     return s_1 - s_2
-
-
-def validate_json_file(json_param_file, solver):
-    """
-    Validate if the parameter file is of type json.
-
-    :param json_param_file:
-    :param solver:
-    :return:
-    """
-    if json_param_file is None:
-        json_file_name = "params_" + str(solver)
-
-        with open(f"Configuration_Functions/{json_file_name}.json", "r") as file:
-            data = file.read()
-        params = json.loads(data)
-
-        param_names = list(params.keys())
-
-    else:
-        params = json_param_file
-        param_names = list(params.keys())
-    return param_names, params

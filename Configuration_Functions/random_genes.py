@@ -21,26 +21,26 @@ def get_all_min_and_max(json_param_file):
     all_min = []
     all_max = []
 
-    for i, _ in enumerate(param_names):
-        if params[param_names[i]]["paramtype"] == "categorical":
-            if params[param_names[i]]["valtype"] == "str":
-                values = params[param_names[i]]["values"]
+    for parameter_index, _ in enumerate(param_names):
+        if params[param_names[parameter_index]]["paramtype"] == "categorical":
+            if params[param_names[parameter_index]]["valtype"] == "str":
+                values = params[param_names[parameter_index]]["values"]
                 all_min.append(values[0])
                 all_max.append(values[len(values) - 1])
 
-            if params[param_names[i]]["valtype"] == "int":
-                all_max.append(params[param_names[i]]["maxval"])
-                all_min.append(params[param_names[i]]["minval"])
+            if params[param_names[parameter_index]]["valtype"] == "int":
+                all_max.append(params[param_names[parameter_index]]["maxval"])
+                all_min.append(params[param_names[parameter_index]]["minval"])
 
-        elif params[param_names[i]]["paramtype"] == "continuous":
-            all_max.append(params[param_names[i]]["maxval"])
-            all_min.append(params[param_names[i]]["minval"])
+        elif params[param_names[parameter_index]]["paramtype"] == "continuous":
+            all_max.append(params[param_names[parameter_index]]["maxval"])
+            all_min.append(params[param_names[parameter_index]]["minval"])
 
-        elif params[param_names[i]]["paramtype"] == "discrete":
-            all_max.append(params[param_names[i]]["maxval"])
-            all_min.append(params[param_names[i]]["minval"])
+        elif params[param_names[parameter_index]]["paramtype"] == "discrete":
+            all_max.append(params[param_names[parameter_index]]["maxval"])
+            all_min.append(params[param_names[parameter_index]]["minval"])
 
-        elif params[param_names[i]]["paramtype"] == "binary":
+        elif params[param_names[parameter_index]]["paramtype"] == "binary":
             all_max.append(1)
             all_min.append(0)
 
@@ -48,6 +48,7 @@ def get_all_min_and_max(json_param_file):
 
 
 # pylint: disable=too-many-nested-blocks,too-many-locals,too-many-branches,too-many-statements
+# noinspection PyTypeChecker
 def genes_set(solver, json_param_file=None):
     """
     Return the gene set for a particular solver.
@@ -60,33 +61,33 @@ def genes_set(solver, json_param_file=None):
 
     genes = [0 for i, _ in enumerate(param_names)]
 
-    for i, _ in enumerate(param_names):
-        if params[param_names[i]]["paramtype"] == "categorical":
+    for parameter_index, _ in enumerate(param_names):
+        if params[param_names[parameter_index]]["paramtype"] == "categorical":
 
-            # if params[param_names[i]]["valtype"] == "str":
-            #     values = params[param_names[i]]["values"]
+            # if params[param_names[parameter_index]]["valtype"] == "str":
+            #     values = params[param_names[parameter_index]]["values"]
             #
-            #     if "flag" in params[param_names[i]]:
+            #     if "flag" in params[param_names[parameter_index]]:
             #         name_is_val = True
             #     else:
-            #         name = param_names[i]
+            #         name = param_names[parameter_index]
             #         name_is_val = False
-            #     genes[i] = random.choice(values)
+            #     genes[parameter_index] = random.choice(values)
             #     if name_is_val:
-            #         name = genes[i]
+            #         name = genes[parameter_index]
 
-            if params[param_names[i]]["valtype"] == "int":
-                max_val = params[param_names[i]]["maxval"]
-                min_val = params[param_names[i]]["minval"]
-                genes[i] = random.randint(min_val, max_val)
+            if params[param_names[parameter_index]]["valtype"] == "int":
+                max_val = params[param_names[parameter_index]]["maxval"]
+                min_val = params[param_names[parameter_index]]["minval"]
+                genes[parameter_index] = random.randint(min_val, max_val)
 
-        elif params[param_names[i]]["paramtype"] == "continuous":
+        elif params[param_names[parameter_index]]["paramtype"] == "continuous":
             default, max_val, min_val, splittable = split_by_default(
-                i, param_names, params
+                index=parameter_index, param_names=param_names, params=params
             )
 
-            if "distribution" in params[param_names[i]]:
-                if params[param_names[i]]["distribution"] == "log":
+            if "distribution" in params[param_names[parameter_index]]:
+                if params[param_names[parameter_index]]["distribution"] == "log":
 
                     (
                         high,
@@ -99,25 +100,39 @@ def genes_set(solver, json_param_file=None):
                         probab_zero,
                         weights,
                     ) = get_log_distribution_params(
-                        default, i, max_val, min_val, param_names, params, splittable
+                        default=default,
+                        parameter_index=parameter_index,
+                        max_val=max_val,
+                        min_val=min_val,
+                        param_names=param_names,
+                        params=params,
+                        splittable=splittable,
                     )
 
                     if len(weights) == 3:
-                        genes[i] = float(choice([low, 0, high], 1, p=weights))
+                        genes[parameter_index] = float(
+                            choice([low, 0, high], 1, p=weights)
+                        )
                     elif len(weights) == 2:
                         if not include_zero:
-                            genes[i] = float(choice([low, high], 1, p=weights))
+                            genes[parameter_index] = float(
+                                choice([low, high], 1, p=weights)
+                            )
                         else:
                             weights[1] = 1 - probab_zero
-                            genes[i] = float(choice([0, high], 1, p=weights))
+                            genes[parameter_index] = float(
+                                choice([0, high], 1, p=weights)
+                            )
                     if splittable:
                         if log_on_pos:
                             weights = [1 - probab_pos, probab_pos]
                         else:
                             weights = [0.5, 0.5]
-                        genes[i] = float(choice([low, high], 1, p=weights))
+                        genes[parameter_index] = float(
+                            choice([low, high], 1, p=weights)
+                        )
                     if not log_on_neg and not log_on_pos and min_val > 0:
-                        genes[i] = float(
+                        genes[parameter_index] = float(
                             choice(
                                 [
                                     math.exp(
@@ -131,15 +146,15 @@ def genes_set(solver, json_param_file=None):
                         )
 
             else:
-                genes[i] = random.uniform(min_val, max_val)
+                genes[parameter_index] = random.uniform(min_val, max_val)
 
-        elif params[param_names[i]]["paramtype"] == "discrete":
+        elif params[param_names[parameter_index]]["paramtype"] == "discrete":
             default, max_val, min_val, splittable = split_by_default(
-                i, param_names, params
+                parameter_index, param_names, params
             )
 
-            if "distribution" in params[param_names[i]]:
-                if params[param_names[i]]["distribution"] == "log":
+            if "distribution" in params[param_names[parameter_index]]:
+                if params[param_names[parameter_index]]["distribution"] == "log":
 
                     (
                         high,
@@ -152,26 +167,38 @@ def genes_set(solver, json_param_file=None):
                         probab_zero,
                         weights,
                     ) = get_log_distribution_params(
-                        default, i, max_val, min_val, param_names, params, splittable
+                        default,
+                        parameter_index,
+                        max_val,
+                        min_val,
+                        param_names,
+                        params,
+                        splittable,
                     )
 
                     if len(weights) == 3:
-                        genes[i] = int(choice([low, 0, high], 1, p=weights))
+                        genes[parameter_index] = int(
+                            choice([low, 0, high], 1, p=weights)
+                        )
                     elif len(weights) == 2:
                         if not include_zero:
-                            genes[i] = int(choice([low, high], 1, p=weights))
+                            genes[parameter_index] = int(
+                                choice([low, high], 1, p=weights)
+                            )
                         else:
                             weights[1] = 1 - probab_zero
-                            genes[i] = int(choice([0, high], 1, p=weights))
+                            genes[parameter_index] = int(
+                                choice([0, high], 1, p=weights)
+                            )
                     if splittable:
                         if log_on_pos:
                             weights = [1 - probab_pos, probab_pos]
                         else:
                             weights = [0.5, 0.5]
-                        genes[i] = int(choice([low, high], 1, p=weights))
+                        genes[parameter_index] = int(choice([low, high], 1, p=weights))
 
                     if not log_on_neg and not log_on_pos and min_val > 0:
-                        genes[i] = int(
+                        genes[parameter_index] = int(
                             choice(
                                 [
                                     math.exp(
@@ -185,24 +212,24 @@ def genes_set(solver, json_param_file=None):
                         )
 
             else:
-                genes[i] = random.randint(min_val, max_val)
+                genes[parameter_index] = random.randint(min_val, max_val)
 
-        elif params[param_names[i]]["paramtype"] == "binary":
-            default = params[param_names[i]]["default"]
-            genes[i] = random.randint(0, 1)
+        elif params[param_names[parameter_index]]["paramtype"] == "binary":
+            # default = params[param_names[parameter_index]]["default"]
+            genes[parameter_index] = random.randint(0, 1)
 
     return genes  # , params
 
 
 # pylint: disable=bad-continuation,too-many-arguments,too-many-statements
 def get_log_distribution_params(
-    default, i, max_val, min_val, param_names, params, splittable
+        default, parameter_index, max_val, min_val, param_names, params, splittable
 ):
     """
     Return the parameters if the distribution is log.
 
     :param default:
-    :param i:
+    :param parameter_index:
     :param max_val:
     :param min_val:
     :param param_names:
@@ -217,50 +244,59 @@ def get_log_distribution_params(
         log_min_val = math.log(min_val)
     log_on_pos = True
     log_on_neg = False
-    probab_pos = None
-    probab_zero = None
+    probability_positive = None
+    probability_zero = None
     include_zero = False
     weights = []
     if min_val <= 0:
-        if "includezero" in params[param_names[i]]:
-            if params[param_names[i]]["includezero"]:
+        if "includezero" in params[param_names[parameter_index]]:
+            if params[param_names[parameter_index]]["includezero"]:
                 include_zero = True
-                if "probabilityzero" in params[param_names[i]]:
-                    if params[param_names[i]]["probabilityzero"]:
-                        probab_zero = params[param_names[i]]["probabilityzero"]
+                if "probabilityzero" in params[param_names[parameter_index]]:
+                    if params[param_names[parameter_index]]["probabilityzero"]:
+                        probability_zero = params[param_names[parameter_index]][
+                            "probabilityzero"
+                        ]
                     else:
                         # default probability if the probability
                         # for zero is not set in params_solver.json
-                        probab_zero = 0.1
-                    weights.append(probab_zero)
+                        probability_zero = 0.1
+                    weights.append(probability_zero)
 
-    if "log_on_pos" in params[param_names[i]]:
-        if params[param_names[i]]["log_on_pos"]:
+    if "log_on_pos" in params[param_names[parameter_index]]:
+        if params[param_names[parameter_index]]["log_on_pos"]:
             log_on_pos = True
-        if "probab_pos" in params[param_names[i]]:
-            probab_pos = params[param_names[i]]["probab_pos"]
+        if "probab_pos" in params[param_names[parameter_index]]:
+            probability_positive = params[param_names[parameter_index]]["probab_pos"]
         else:
-            if probab_zero and "probabneg" in params[param_names[i]]:
-                probab_pos = 1 - probab_zero - params[param_names[i]]["probabneg"]
-            elif probab_zero:
-                probab_pos = (1 - probab_zero) / 2
+            if probability_zero and "probabneg" in params[param_names[parameter_index]]:
+                probability_positive = (
+                        1
+                        - probability_zero
+                        - params[param_names[parameter_index]]["probabneg"]
+                )
+            elif probability_zero:
+                probability_positive = (1 - probability_zero) / 2
             else:
-                probab_pos = 0.5
-        weights.append(probab_pos)
+                probability_positive = 0.5
+        weights.append(probability_positive)
     else:
         log_on_pos = False
     if min_val < 0:
-        if "log_on_neg" in params[param_names[i]]:
-            if params[param_names[i]]["log_on_neg"]:
+        if "log_on_neg" in params[param_names[parameter_index]]:
+            if params[param_names[parameter_index]]["log_on_neg"]:
                 log_on_neg = True
                 log_min_val = math.log(-min_val)
-            if "probabneg" in params[param_names[i]]:
-                probab_neg = params[param_names[i]]["probabneg"]
+            if "probabneg" in params[param_names[parameter_index]]:
+                probab_neg = params[param_names[parameter_index]]["probabneg"]
             else:
-                if probab_zero:
-                    probab_neg = 1 - probab_zero - probab_pos
-                elif probab_zero and probab_pos == (1 - probab_zero) / 2:
-                    probab_neg = (1 - probab_zero) / 2
+                if probability_zero:
+                    probab_neg = 1 - probability_zero - probability_positive
+                elif (
+                        probability_zero
+                        and probability_positive == (1 - probability_zero) / 2
+                ):
+                    probab_neg = (1 - probability_zero) / 2
                 else:
                     probab_neg = 0.5
             weights = [probab_neg] + weights
@@ -291,34 +327,34 @@ def get_log_distribution_params(
         log_on_neg,
         log_on_pos,
         low,
-        probab_pos,
-        probab_zero,
+        probability_positive,
+        probability_zero,
         weights,
     )
 
 
-def split_by_default(i, param_names, params):
+def split_by_default(index, param_names, params):
     """
     Check if the parameters names are splittable or not.
 
-    :param i:
+    :param index:
     :param param_names:
     :param params:
     :return:
     """
-    max_val = params[param_names[i]]["maxval"]
-    min_val = params[param_names[i]]["minval"]
+    max_val = params[param_names[index]]["maxval"]
+    min_val = params[param_names[index]]["minval"]
     default = None
-    if "splitbydefault" in params[param_names[i]]:
-        if params[param_names[i]]["splitbydefault"]:
-            default = params[param_names[i]]["default"]
+    if "splitbydefault" in params[param_names[index]]:
+        if params[param_names[index]]["splitbydefault"]:
+            default = params[param_names[index]]["default"]
             splittable = True
             return default, max_val, min_val, splittable
     return default, max_val, min_val, False
 
 
 def one_hot_decode(
-    genes, solver, param_value_dict=None, json_param_file=None, reverse=False
+        genes, solver, param_value_dict=None, json_param_file=None, reverse=False
 ):
     """
     Reverse One-Hot Encoding based on param_solver.json.
@@ -336,7 +372,7 @@ def one_hot_decode(
 
     # one-hot encoding of previously one-hot decoded parameterization
     if (
-        reverse
+            reverse
     ):  # One-Hot decoding here (one-hot parameters back to solver specific representation)
 
         pool = genes
@@ -350,7 +386,6 @@ def one_hot_decode(
                 originals_ind_to_delete = []
                 one_hot_addition = []
                 for i, _ in enumerate(param_names):
-                    values = []
                     param_value_dict[param_names[i]] = next_params[i]
                     if params[param_names[i]]["paramtype"] == "categorical":
                         if params[param_names[i]]["valtype"] == "int":
@@ -399,14 +434,14 @@ def one_hot_decode(
                         real_vector.append(
                             [min_val + t for t in range(max_val - min_val + 1)]
                         )
-                        one_hot_part = [0 for i in range(max_val - min_val + 1)]
+                        one_hot_part = [0 for _ in range(max_val - min_val + 1)]
                         one_hot_tail.append(one_hot_part)
 
         one_hot_tail_len = 0
         for i, _ in enumerate(one_hot_tail):
             one_hot_tail_len += len(one_hot_tail[i])
 
-        one_hot_values = genes[len(genes) - one_hot_tail_len :]
+        one_hot_values = genes[len(genes) - one_hot_tail_len:]
 
         cat_int_values = []
 
@@ -422,7 +457,7 @@ def one_hot_decode(
         new_genes = []
         insert_count = 0
 
-        k = 0
+        k = 0 # Length of the subset Line 9 CPPL
         for key in param_value_dict:
             if param_value_dict[key] is None:
                 int_value = cat_int_values.pop(0)
