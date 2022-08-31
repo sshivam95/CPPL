@@ -168,3 +168,5 @@ dmypy.json
 /Times_per_instance_CPPL.txt
 /.idea/vcs.xml
 /.idea/watcherTasks.xml
+/contender_pool.json
+/.vscode/launch.json
