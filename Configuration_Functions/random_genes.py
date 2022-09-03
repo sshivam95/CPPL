@@ -7,14 +7,14 @@ import numpy as np
 from numpy.random import choice
 
 
-def get_all_min_and_max(json_param_file):
+def get_all_min_and_max(solver_parameters):
     """
     Get the minimum and maximum values from the parameter file for the solver.
 
-    :param json_param_file: The parameter file in json format.
+    :param solver_parameters: The parameter file in json format.
     :return: all minimum and maximum values from the file.
     """
-    params = json_param_file
+    params = solver_parameters
 
     param_names = list(params.keys())
 
@@ -49,15 +49,15 @@ def get_all_min_and_max(json_param_file):
 
 # pylint: disable=too-many-nested-blocks,too-many-locals,too-many-branches,too-many-statements
 # noinspection PyTypeChecker
-def genes_set(solver, json_param_file=None):
+def genes_set(solver, solver_parameters=None):
     """
     Return the gene set for a particular solver.
 
     :param solver: The solver instance for which the gene set is required.
-    :param json_param_file: The json parameter file.
+    :param solver_parameters: The json parameter file.
     :return: genes set.
     """
-    param_names, params = validate_json_file(json_param_file, solver)
+    param_names, params = validate_json_file(solver_parameters, solver)
 
     genes = [0 for i, _ in enumerate(param_names)]
 
@@ -354,7 +354,7 @@ def split_by_default(index, param_names, params):
 
 
 def one_hot_decode(
-        genes, solver, param_value_dict=None, json_param_file=None, reverse=False
+        genes, solver, param_value_dict=None, solver_parameters=None, reverse=False
 ):
     """
     Reverse One-Hot Encoding based on param_solver.json.
@@ -362,11 +362,11 @@ def one_hot_decode(
     :param genes:
     :param solver:
     :param param_value_dict:
-    :param json_param_file:
+    :param solver_parameters:
     :param reverse:
     :return:
     """
-    param_names, params = validate_json_file(json_param_file, solver)
+    param_names, params = validate_json_file(solver_parameters, solver)
 
     genes = list(genes)
 
@@ -382,7 +382,7 @@ def one_hot_decode(
 
             for j, _ in enumerate(pool):
                 next_params = list(pool[j])
-                params = json_param_file
+                params = solver_parameters
                 originals_ind_to_delete = []
                 one_hot_addition = []
                 for i, _ in enumerate(param_names):
@@ -472,16 +472,16 @@ def one_hot_decode(
     return genes
 
 
-def get_params_string_from_numeric_params(genes, solver, json_param_file=None):
+def get_params_string_from_numeric_params(genes, solver, solver_parameters=None):
     """
     Transform string categorical back to string based on params_solver.json.
 
     :param genes:
     :param solver:
-    :param json_param_file:
+    :param solver_parameters:
     :return:
     """
-    param_names, params = validate_json_file(json_param_file, solver)
+    param_names, params = validate_json_file(solver_parameters, solver)
 
     genes = list(genes)
 
@@ -495,15 +495,15 @@ def get_params_string_from_numeric_params(genes, solver, json_param_file=None):
     return genes
 
 
-def validate_json_file(json_param_file, solver):
+def validate_json_file(solver_parameters, solver):
     """
     Validate if the parameter file is of type json.
 
-    :param json_param_file:
+    :param solver_parameters:
     :param solver:
     :return:
     """
-    if json_param_file is None:
+    if solver_parameters is None:
         json_file_name = "params_" + str(solver)
 
         with open(f"Configuration_Functions/{json_file_name}.json", "r") as file:
@@ -513,6 +513,6 @@ def validate_json_file(json_param_file, solver):
         param_names = list(params.keys())
 
     else:
-        params = json_param_file
+        params = solver_parameters
         param_names = list(params.keys())
     return param_names, params

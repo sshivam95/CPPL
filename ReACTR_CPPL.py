@@ -20,6 +20,7 @@ from jsonschema import validate
 from sklearn import preprocessing
 from sklearn.decomposition import PCA
 
+import utils.log_params_utils
 from Configuration_Functions import CPPLConfig
 from Configuration_Functions import file_logging
 from Configuration_Functions import log_on_huge_params
@@ -31,7 +32,7 @@ from Configuration_Functions.random_genes import genes_set
 
 
 def _main():
-    # global args, solver, directory, files, times_instances, problem_instance_list, tracking_times, tracking_pool, num_parameters, json_param_file, contender_pool, f, rounds_to_train, standard_scaler, pca_obj_inst, params, parameter_value_dict, min_max_scaler, pca_obj_params, jfm, theta_hat, theta_bar, grad_op_sum, hess_sum, omega, gamma_1, alpha, t, winner_index_time_step, S_t, grad, winner_known, dimensions
+    # global args, solver, directory, files, times_instances, problem_instance_list, tracking_times, tracking_pool, num_parameters, solver_parameters, contender_pool, f, rounds_to_train, standard_scaler, pca_obj_inst, params, parameter_value_dict, min_max_scaler, pca_obj_params, jfm, theta_hat, theta_bar, grad_op_sum, hess_sum, omega, gamma_1, alpha, t, winner_index_time_step, S_t, grad, winner_known, dimensions
     global training_files
     # Parse directory of instances, solver, max. time_step for single solving
     parser = argparse.ArgumentParser(description="Start Tournaments")
@@ -216,10 +217,10 @@ def _main():
     # Count available cores
     num_parameters = mp.cpu_count()  # Total number of Parameters in set P
     _init_parameter_directory()
-    json_param_file = validate_param_json(solver=solver)
+    solver_parameters = validate_param_json(solver=solver)
 
     contender_pool = _init_pool(
-        args=args, json_param_file=json_param_file, solver=solver
+        args=args, solver_parameters=solver_parameters, solver=solver
     )
 
     # Write contender_pool to textfile for solver to access parameter settings
@@ -250,7 +251,7 @@ def _main():
         parameter_value_dict,
         params,
         pca_obj_params,
-    ) = _get_pca_params(args=args, contender_pool=contender_pool, json_param_file=json_param_file, solver=solver)
+    ) = _get_pca_params(args=args, contender_pool=contender_pool, solver_parameters=solver_parameters, solver=solver)
 
     # other parameters
     (
@@ -278,7 +279,7 @@ def _main():
         tracking_times,
         tracking_pool,
         num_parameters,
-        json_param_file,
+        solver_parameters,
         contender_pool,
         training_files,
         rounds_to_train,
@@ -368,10 +369,10 @@ def _get_other_params(args, no_comp_pca_features, num_pca_params_components):
     )
 
 
-def _get_pca_params(args, contender_pool, json_param_file, solver):
+def _get_pca_params(args, contender_pool, solver_parameters, solver):
     params, parameter_value_dict = CPPLConfig.read_parameters(contender_pool, solver)
     params = np.asarray(params)
-    all_min, all_max = random_genes.get_all_min_and_max(json_param_file)
+    all_min, all_max = random_genes.get_all_min_and_max(solver_parameters)
     all_min, _ = CPPLConfig.read_parameters(
         contender_pool, solver, contender=all_min
     )
@@ -380,8 +381,8 @@ def _get_pca_params(args, contender_pool, json_param_file, solver):
     )
     params = np.append(params, [all_min], axis=0)
     params = np.append(params, [all_max], axis=0)
-    params = log_on_huge_params.log_space_convert(
-        float(args.paramlimit), params, json_param_file
+    params = utils.log_params_utils.log_space_convert(
+        float(args.paramlimit), params, solver_parameters
     )
     min_max_scaler = preprocessing.MinMaxScaler()
     params = min_max_scaler.fit_transform(params)
@@ -427,7 +428,7 @@ def _init_features(directory):
         for row in reader:
             if len(row[0]) != 0:
                 next_features = row
-                train_list.append(row[0])
+                train_list.append(row[0])  # Question: What's the use of this?
                 next_features.pop(0)
                 next_features = [float(j) for j in next_features]
                 features.append(next_features)
@@ -489,7 +490,7 @@ def _init_problem_instance_list(problem_instance_list):
     return problem_instance_list
 
 
-def _init_pool(args, json_param_file, solver):
+def _init_pool(args, solver_parameters, solver):
     # global contender_pool
     # Initialize contender_pool
     if args.data is None:
@@ -498,20 +499,20 @@ def _init_pool(args, json_param_file, solver):
         if args.baselineperf:
             print("Baseline Performance Run (only default parameters)")
             for key in contender_pool:
-                contender_pool[key] = pws.set_genes(json_param_file)
+                contender_pool[key] = pws.set_genes(solver_parameters)
                 set_param.set_contender_params(key, contender_pool[key],
-                                               json_param_file)
+                                               solver_parameters)
         else:
             for key in contender_pool:
                 contender_pool[key] = genes_set(solver)
                 set_param.set_contender_params(key, contender_pool[key],
-                                               json_param_file)
+                                               solver_parameters)
             if args.pws is not None:
-                contender_pool["contender_0"] = pws.set_genes(json_param_file)
+                contender_pool["contender_0"] = pws.set_genes(solver_parameters)
                 set_param.set_contender_params(
                     "contender_0",
                     contender_pool["contender_0"],
-                    json_param_file,
+                    solver_parameters,
                 )
 
     elif args.data == "y":
@@ -524,7 +525,7 @@ def _init_pool(args, json_param_file, solver):
             contender_pool = eval(file.read())
             for key in contender_pool:
                 set_param.set_contender_params(key, contender_pool[key],
-                                               json_param_file)
+                                               solver_parameters)
 
     return contender_pool
 
@@ -716,7 +717,7 @@ def tournament(
 
         param_string = set_param.set_contender_params(
             contender, Pool[contender],
-            json_param_file, return_it=True
+            solver_parameters, return_it=True
         )
 
         # noinspection PyTypeChecker
@@ -823,7 +824,7 @@ if __name__ == "__main__":
         tracking_times,
         tracking_pool,
         num_parameters,
-        json_param_file,
+        solver_parameters,
         contender_pool,
         training_files,
         rounds_to_train,
@@ -894,9 +895,9 @@ if __name__ == "__main__":
                     tracking_Pool=tracking_pool,
                     min_max_scaler=min_max_scaler,
                     standard_scaler=standard_scaler,
-                    pl=float(args.paramlimit),
+                    parameter_limit=float(args.paramlimit),
                     param_value_dict=parameter_value_dict,
-                    json_param_file=json_param_file,
+                    solver_parameters=solver_parameters,
                     exp=args.exp,
                 )
 
@@ -915,7 +916,7 @@ if __name__ == "__main__":
                     solver,
                     float(args.paramlimit),
                     params,
-                    json_param_file,
+                    solver_parameters,
                     theta_bar,
                     jfm,
                     min_max_scaler,
