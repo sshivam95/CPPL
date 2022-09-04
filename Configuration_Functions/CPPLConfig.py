@@ -67,7 +67,7 @@ def get_contenders(
                                                       grad,
                                                       grad_op_sum,
                                                       hess_sum,
-                                                      subset_size,
+                                                      subset_size,  #
                                                       n,
                                                       omega,
                                                       theta_bar,
@@ -108,7 +108,7 @@ def get_contenders(
                         and v_hat[p2] - confidence_t[p2] >= v_hat[p1] + confidence_t[p1]
                         and (not p1 in discard)
                 ):
-                    discard.append(p1)
+                    discard.append(p1)  # TODO needs to be updated/changed is using algorithms other than UCB
                     break
 
         if len(discard) > 0:
@@ -191,9 +191,10 @@ def get_contenders(
 
             v_hat_new_candidates = np.zeros(new_candidates_size)
             for i in range(new_candidates_size):
-                X = join_feature_map(new_candidates_transformed[i],
-                                     features[0],
-                                     jfm)
+                X = join_feature_map(
+                    x=new_candidates_transformed[i],
+                    y=features[0],
+                    mode=jfm)
                 v_hat_new_candidates[i] = np.exp(np.inner(theta_bar,
                                                           X))
 
@@ -253,9 +254,9 @@ def get_contenders(
 def preselection_UCB(S_t, X_t, d, grad, grad_op_sum, hess_sum, subset_size, n, omega, theta_bar, time_step, v_hat):
     if time_step >= 1:
         confidence_t = np.zeros(n)
-        hess = hessian(theta_bar,
-                       S_t,
-                       X_t)
+        hess = hessian(theta=theta_bar,
+                       S=S_t,
+                       X=X_t)
         hess_sum = hess_sum + hess
         grad_op_sum = grad_op_sum + np.outer(grad,
                                              grad)
@@ -281,7 +282,7 @@ def preselection_UCB(S_t, X_t, d, grad, grad_op_sum, hess_sum, subset_size, n, o
                                         X_t[i, :])) * np.dot(
                     X_t[i, :],
                     X_t[i, :]
-                )
+                )  # M_t ^(i) (theta)
 
                 confidence_t[i] = omega * np.sqrt(
                     (2 * np.log(time_step) + d + 2 * np.sqrt(d * np.log(time_step)))
@@ -347,14 +348,12 @@ def get_context_feature_matrix(
     # PCA on parametrization
     params_transformed = pca_obj_params.transform(params)
     # construct X_t (context specific (instance information) feature matrix ( and parameterization information))
-    n = params.shape[0]  # Distinct Parameters
-    d = len(theta_bar)
+    n = params.shape[0]
+    d = len(theta_bar)  # degree of freedom or context vector dimension
     X_t = np.zeros((n, d))
     for i in range(n):
         next_X_t = join_feature_map(
-            params_transformed[
-                i,
-            ],
+            params_transformed[i, ],
             features[0],
             jfm,
         )
@@ -362,12 +361,11 @@ def get_context_feature_matrix(
     # Normalizing the context specific features
     preprocessing.normalize(X_t,
                             norm="max",
-                            copy=False)
+                            copy=False)  # Question: What's the use if not assigned to X_t
     # compute estimated contextualized utility parameters (v_hat)
     v_hat = np.zeros(n)  # Line 7 in CPPL algorithm
     for i in range(n):
-        v_hat[i] = np.exp(np.inner(theta_bar,
-                                   X_t[i, :]))
+        v_hat[i] = np.exp(np.inner(theta_bar, X_t[i, :]))  # \hat{v}_{t,i} = exp(x_{t,i}.T theta)
     return X_t, d, features, n, params, v_hat
 
 

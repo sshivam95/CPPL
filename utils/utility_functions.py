@@ -21,43 +21,32 @@ def gradient(theta, Y, S, X):
 def hessian(theta, S, X):
     dimension = len(theta)
     t_1 = np.zeros(dimension)
-    for l in S:
-        t_1 = t_1 + (X[l, :] * np.exp(np.dot(theta,
-                                             X[l, :])))
-    num_1 = np.outer(t_1,
-                     t_1)
+    for arm in S:
+        t_1 = t_1 + (X[arm, :] * np.exp(np.dot(theta, X[arm, :])))
+    num_1 = np.outer(t_1, t_1)
     denominator_1 = 0
-    for l in S:
-        denominator_1 = denominator_1 + np.exp(np.dot(theta,
-                                                      X[l, :])) ** 2
+    for arm in S:
+        denominator_1 = denominator_1 + np.exp(np.dot(theta, X[arm, :])) ** 2
     s_1 = num_1 / denominator_1
     #
     num_2 = 0
     for j in S:
-        num_2 = num_2 + (np.exp(np.dot(theta,
-                                       X[j, :])) * np.outer(X[j, :],
-                                                            X[j, :]))
+        num_2 = num_2 + (np.exp(np.dot(theta,  X[j, :])) * np.outer(X[j, :], X[j, :]))
     denominator_2 = 0
-    for l in S:
-        denominator_2 = denominator_2 + np.exp(np.dot(theta,
-                                                      X[l, :]))
+    for arm in S:
+        denominator_2 = denominator_2 + np.exp(np.dot(theta, X[arm, :]))
     s_2 = num_2 / denominator_2
     return s_1 - s_2
 
 
 def join_feature_map(x, y, mode):
     if mode == "concatenation":
-        return np.concatenate((x, y),
-                              axis=0)
+        return np.concatenate((x, y), axis=0)
     elif mode == "kronecker":
-        return np.kron(x,
-                       y)
+        return np.kron(x, y)
     elif mode == "polynomial":
-        poly = PolynomialFeatures(degree=2,
-                                  interaction_only=True)
-        return poly.fit_transform(np.concatenate((x, y),
-                                                 axis=0).reshape(1,
-                                                                 -1))
+        poly = PolynomialFeatures(degree=2, interaction_only=True)
+        return poly.fit_transform(np.concatenate((x, y), axis=0).reshape(1, -1))
 
 
 def get_problem_instance_list(sorted_directory):
@@ -71,8 +60,7 @@ def get_problem_instance_list(sorted_directory):
 
 def json_validation(param, schema):
     try:
-        jsonschema.validate(instance=param,
-                            schema=schema)
+        jsonschema.validate(instance=param, schema=schema)
     except jsonschema.exceptions.ValidationError:
         return False
     return True
