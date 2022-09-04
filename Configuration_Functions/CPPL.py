@@ -67,9 +67,24 @@ class CPPLBase:
         self.standard_scalar, self.n_pca_features_components, self.pca_obj_instances = self._init_pca_features()
 
         # TODO add other initialization methods
-        self._init_pca_params()
+        self.params, self.parameter_value_dict, self.min_max_scalar, self.n_pca_params_components, self.pca_obj_params = self._init_pca_params()
         # other parameters
-        self._init_algo_params()
+        candidates_pool_dimensions = self._get_candidates_pool_dimensions()
+
+        # theta_hat = np.random.rand(candidates_pool_dimensions)
+        self.theta_hat = np.zeros(
+            candidates_pool_dimensions
+        )  # Line 2 CPPL (random Parameter Vector)
+        self.theta_bar = self.theta_hat  # Line 3 CPPl
+        self.grad_op_sum = np.zeros(
+            (candidates_pool_dimensions, candidates_pool_dimensions)
+        )
+        self.hess_sum = np.zeros(
+            (candidates_pool_dimensions, candidates_pool_dimensions)
+        )
+        self.grad = np.zeros(
+            candidates_pool_dimensions
+        )  # Gradient ∇L in line 11 to update ˆθt
 
         self.omega = (
             self.args.omega
@@ -77,7 +92,7 @@ class CPPLBase:
         self.gamma = self.args.gamma  # Parameter CPPL (Best value = 1)
         self.alpha = self.args.alpha  # Parameter CPPL (Best value = 0.2)
         self.time_step = 0  # initial time step = 0 where initialization takes place
-        self.Y_t = 0
+        self.Y_t = 0  # The Winning contender, the top-ranked arm among the subset St provided by the underlying contextualized PL model in case of winner feedback
         self.S_t = []  # Subset of contenders Line 9 of CPPL
 
         self.winner_known = True
@@ -108,40 +123,45 @@ class CPPLBase:
 
         # Check training is required
         if self.args.train_number is not None:
+            self.training = True
             for self.root, self.training_directory, self.training_file in sorted(
                     os.walk(self.directory)
             ):
                 continue
+        else:
+            self.training = False
 
         if self.args.train_rounds is not None:
             self.rounds_to_train = int(self.args.train_rounds)
         else:
             self.rounds_to_train = 0
 
-    def _init_output_files(self):
-        self.directory = os.fsencode(self.args.directory)
-        # path, dirs, files = next(os.walk(self.args.directory))
-        self.instances = []
-        if self.args.file_order == Constants.ARGS_ASCENDING.value:
-            self.problem_instance_list = get_problem_instance_list(
-                sorted_directory=sorted(os.listdir(self.directory))
-            )
-        elif self.args.file_order == Constants.ARGS_DESCENDING.value:
-            self.problem_instance_list = get_problem_instance_list(
-                sorted(os.listdir(self.directory),
-                       reverse=True)
-            )
+    def _check_instance_feature_directory(self):
+        instance_feature_directory = pathlib.Path("Instance_Features")
+        if instance_feature_directory.exists():
+            pass
         else:
-            file_order = str(self.args.file_order)
-            with open(f"{file_order}.txt",
-                      "r") as file:
-                self.problem_instance_list = eval(file.read())
-        with open(f"{Constants.PROBLEM_INSTANCE_LIST_TXT_FILE.value}",
-                  "w") as file:
             print(
-                self.problem_instance_list,
-                file=file
-            )  # Print all the instance in problem_instance_list.txt
+                "\nWARNING!\n\nA directory named <Instance_Features> with a "
+                ".csv file containing the instance features is necessary!"
+            )
+
+            if self.args.directory != Constants.NO_INSTANCE_DIRECTORY_FOUND.value:
+                print(
+                    "\nIt must be named: Features_" + str(self.directory)[2:-1] + ".csv"
+                )
+
+            else:
+                print(
+                    "\nIt must be named: "
+                    "Features_<problem_instance_directory_name>.csv"
+                )
+            print(
+                "\ninstance1 feature_value1 feature_value2 "
+                "....\ninstance2 feature_value1..."
+            )
+            print("\nExiting...")
+            sys.exit(0)
 
     def _get_solver_parameters(self):
         json_file_name = "params_" + str(self.args.solver)
@@ -221,32 +241,30 @@ class CPPLBase:
                         solver_parameters=self.solver_parameters,
                     )
 
-    def _check_instance_feature_directory(self):
-        instance_feature_directory = pathlib.Path("Instance_Features")
-        if instance_feature_directory.exists():
-            pass
+    def _init_output_files(self):
+        self.directory = os.fsencode(self.args.directory)
+        # path, dirs, files = next(os.walk(self.args.directory))
+        self.instances = []
+        if self.args.file_order == Constants.ARGS_ASCENDING.value:
+            self.problem_instance_list = get_problem_instance_list(
+                sorted_directory=sorted(os.listdir(self.directory))
+            )
+        elif self.args.file_order == Constants.ARGS_DESCENDING.value:
+            self.problem_instance_list = get_problem_instance_list(
+                sorted(os.listdir(self.directory),
+                       reverse=True)
+            )
         else:
+            file_order = str(self.args.file_order)
+            with open(f"{file_order}.txt",
+                      "r") as file:
+                self.problem_instance_list = eval(file.read())
+        with open(f"{Constants.PROBLEM_INSTANCE_LIST_TXT_FILE.value}",
+                  "w") as file:
             print(
-                "\nWARNING!\n\nA directory named <Instance_Features> with a "
-                ".csv file containing the instance features is necessary!"
-            )
-
-            if self.args.directory != Constants.NO_INSTANCE_DIRECTORY_FOUND.value:
-                print(
-                    "\nIt must be named: Features_" + str(self.directory)[2:-1] + ".csv"
-                )
-
-            else:
-                print(
-                    "\nIt must be named: "
-                    "Features_<problem_instance_directory_name>.csv"
-                )
-            print(
-                "\ninstance1 feature_value1 feature_value2 "
-                "....\ninstance2 feature_value1..."
-            )
-            print("\nExiting...")
-            sys.exit(0)
+                self.problem_instance_list,
+                file=file
+            )  # Print all the instance in problem_instance_list.txt
 
     def _init_pca_features(self):
         if os.path.isfile(
@@ -296,26 +314,28 @@ class CPPLBase:
     def _init_pca_params(self):
         cppl_utils = CPPLUtils(pool=self.contender_pool,
                                solver=self.args.solver)
-        self.params, self.parameter_value_dict = cppl_utils.read_parameters()
-        self.params = np.asarray(self.params)
+        params, parameter_value_dict = cppl_utils.read_parameters()
+        params = np.asarray(params)
         all_min, all_max = random_genes.get_all_min_and_max(self.solver_parameters)
         all_min, _ = cppl_utils.read_parameters(contender=all_min)
         all_max, _ = cppl_utils.read_parameters(contender=all_max)
-        self.params = np.append(self.params,
-                                [all_min, all_max],
-                                axis=0)
-        self.params = log_space_convert(
+        params = np.append(params,
+                           [all_min, all_max],
+                           axis=0)
+        params = log_space_convert(
             limit_number=float(self.args.paramimit),
-            param_set=self.params,
+            param_set=params,
             solver_parameter=self.solver_parameters,
         )
-        self.min_max_scalar = MinMaxScaler()
-        self.params = self.min_max_scalar.fit_transform(self.params)
-        self.n_pca_params_components = self.args.nc_pca_p
-        self.pca_obj_params = PCA(n_components=self.n_pca_params_components)
-        self.pca_obj_params.fit(self.params)
+        min_max_scalar = MinMaxScaler()
+        params = min_max_scalar.fit_transform(params)
+        n_pca_params_components = self.args.nc_pca_p
+        pca_obj_params = PCA(n_components=n_pca_params_components)
+        pca_obj_params.fit(params)
 
-    def _init_algo_params(self):
+        return params, parameter_value_dict, min_max_scalar, n_pca_params_components, pca_obj_params
+
+    def _get_candidates_pool_dimensions(self):
         self.joint_featured_map_mode = self.args.jfm  # Default="polynomial"
         candidates_pool_dimensions = 4  # by default # Corresponds to n different parameterization (Pool of candidates)
         if self.joint_featured_map_mode == "concatenation":
@@ -334,29 +354,16 @@ class CPPLBase:
                         candidates_pool_dimensions + 3 + index_pca_params
                 )
 
-        # theta_hat = np.random.rand(dimensions)
-        self.theta_hat = np.zeros(
-            candidates_pool_dimensions
-        )  # Line 2 CPPL (random Parameter Vector)
-        self.theta_bar = self.theta_hat  # Line 3 CPPl
-        self.grad_op_sum = np.zeros(
-            (candidates_pool_dimensions, candidates_pool_dimensions)
-        )
-        self.hess_sum = np.zeros(
-            (candidates_pool_dimensions, candidates_pool_dimensions)
-        )
-        self.grad = np.zeros(
-            candidates_pool_dimensions
-        )  # Gradient ∇L in line 11 to update ˆθt
+        return candidates_pool_dimensions
 
-    def get_context_feature_matrix(self, pool, filename):
+    def get_context_feature_matrix(self, filename):
         # read and preprocess instance features (PCA)
         features = self.get_features(filename=f"{filename}")
         features = self.standard_scalar.transform(features.reshape(1,
                                                                    -1))
         features = self.pca_obj_instances.transform(features)
         # get parametrization
-        params, _ = CPPLUtils(pool=pool,
+        params, _ = CPPLUtils(pool=self.contender_pool,
                               solver=self.args.solver).read_parameters()
         params = np.asarray(params)
         params = log_space_convert(limit_number=self.parameter_limit,
@@ -421,7 +428,13 @@ class CPPLConfiguration:
         self.base = CPPLBase(args=args)
         self.logger = logging.getLogger(logger_name)
         self.logger.setLevel(logger_level)
-        pass
+
+    def _get_contender_list(self, filename):
+        contender_list, discard = None, None
+        X_t, dimensions, context_features, n, params, v_hat = self.base.get_context_feature_matrix(filename=filename)
+        discard = []
+
+        return X_t, contender_list, discard
 
 
 class CPPLAlgo(CPPLConfiguration):
@@ -455,6 +468,7 @@ class CPPLAlgo(CPPLConfiguration):
 
                 if self.base.winner_known:
                     # Get contender list
+                    X_t, contender_list, discard = self._get_contender_list(filename=filename)
                     pass
         pass
 
