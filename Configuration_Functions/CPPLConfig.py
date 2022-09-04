@@ -14,7 +14,7 @@ import numpy as np
 import scipy as sp
 from sklearn import preprocessing
 
-from utils.utility_functions import gradient, hessian, join_feature_map, save_result
+from utils.utility_functions import gradient, hessian, join_feature_map
 
 
 # TODO make this method in CPPl class
@@ -168,7 +168,7 @@ def get_contenders(
             new_candidates_transformed, new_candidates = parallel_evolution_and_fitness(
                 subset_size=subset_size,
                 new_candidates_size=new_candidates_size,
-                S_t=Set,
+                S_t=S_t,
                 params=params,
                 solver=solver,
                 param_value_dict=param_value_dict,
@@ -341,8 +341,8 @@ def get_context_feature_matrix(
     params = np.asarray(params)
     params_original_size = params.shape[1]
     params = log_space_convert(parameter_limit,
-                                                      params,
-                                                      solver_parameters)
+                               params,
+                               solver_parameters)
     params = min_max_scaler.transform(params)
     # PCA on parametrization
     params_transformed = pca_obj_params.transform(params)
@@ -414,6 +414,10 @@ def contender_list_including_generated(
         contender_list.append("contender_" + str(S_t[i]))
 
     return contender_list
+
+
+def save_result(result):
+    asyncResults.append([result[0], result[1]])
 
 
 # TODO to CPPLConfiguration

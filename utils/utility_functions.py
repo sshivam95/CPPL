@@ -4,8 +4,6 @@ import jsonschema
 import numpy as np
 from sklearn.preprocessing import PolynomialFeatures
 
-from Configuration_Functions.CPPLConfig import asyncResults
-
 
 def gradient(theta, Y, S, X):
     denominator = 0
@@ -87,6 +85,3 @@ def set_genes(solver_parameters: list) -> list:
         genes[i] = solver_parameters[param_names[i]]["default"]
     return genes
 
-
-def save_result(result):
-    asyncResults.append([result[0], result[1]])
