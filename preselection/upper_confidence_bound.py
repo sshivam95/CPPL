@@ -7,14 +7,14 @@ class UCB:
     def __init__(
             self,
             cppl_base_object,
-            X_t,
+            context_matrix,
             degree_of_freedom,  # context vector dimension (len of theta_bar)
             n_arms,  # Number of parameters
             v_hat,  # estimated unknown contextualized utility parameter
     ):
         self.base = cppl_base_object
         self.S_t = self.base.S_t
-        self.context_matrix = X_t
+        self.context_matrix = context_matrix
         self.degree_of_freedom = degree_of_freedom
         self.n_arms = n_arms
         self.v_hat = v_hat
