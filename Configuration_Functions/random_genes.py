@@ -7,6 +7,7 @@ import numpy as np
 from numpy.random import choice
 
 
+# TODO: - prepare a class which has a cppl_base object for CPPLBASE class
 def get_all_min_and_max(solver_parameters):
     """
     Get the minimum and maximum values from the parameter file for the solver.
