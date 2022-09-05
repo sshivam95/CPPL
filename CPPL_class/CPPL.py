@@ -74,7 +74,6 @@ class CPPLBase:
             self.train_list,
         ) = self._init_pca_features()
 
-        # TODO add other initialization methods
         (
             self.params,
             self.parameter_value_dict,
@@ -428,20 +427,22 @@ class CPPLConfiguration:
         self.logger = logging.getLogger(logger_name)
         self.logger.setLevel(logger_level)
 
+        self.filename = None
         self.async_results = []
 
     def _get_contender_list(self, filename):
+        self.filename = filename
         (
             X_t,  # Context matrix
             degree_of_freedom,  # context vector dimension (len of theta_bar)
-            pca_context_features,
-            n_arms,  # Number of parameters
+            self.pca_context_features,
+            self.n_arms,  # Number of parameters
             self.params,
             v_hat,
-        ) = self.base.get_context_feature_matrix(filename=filename)
+        ) = self.base.get_context_feature_matrix(filename=self.filename)
         self.discard = []
 
-        ucb = UCB(cppl_base_object=self.base, context_matrix=X_t, degree_of_freedom=degree_of_freedom, n_arms=n_arms,
+        ucb = UCB(cppl_base_object=self.base, context_matrix=X_t, degree_of_freedom=degree_of_freedom, n_arms=self.n_arms,
                   v_hat=v_hat)
         if self.base.time_step == 0:
             self.base.S_t, self.contender_list_str, v_hat = ucb.run()  # Get the subset S_t
@@ -456,18 +457,16 @@ class CPPLConfiguration:
                 genes=genes,
                 solver_parameters=self.base.solver_parameters
             )
-
             self.contender_list_str[0] = "contender_0"
-            self.base.contender_pool["contender_0"] = genes
-            self.base.tracking_pool.info(self.base.contender_pool)
+            self.update_logs(contender_index='0', genes=genes)
 
         else:
             # compute confidence_t and select S_t (symmetric group on [num_parameters], consisting of rankings: r ∈ S_n)
             self.base.S_t, confidence_t, self.contender_list_str, v_hat = ucb.run()
 
             # update contenders
-            for arm1 in range(n_arms):
-                for arm2 in range(n_arms):
+            for arm1 in range(self.n_arms):
+                for arm2 in range(self.n_arms):
                     if arm2 != arm1 and v_hat[arm2] - confidence_t[arm2] >= v_hat[arm1] + confidence_t[arm1] and (
                             not arm1 in self.discard):
                         self.discard.append(arm1)
@@ -476,13 +475,6 @@ class CPPLConfiguration:
                 self.contender_list_str = self._generate_new_parameters()
 
         return X_t, self.contender_list_str, self.discard
-
-    def _contender_list_including_generated(self, filename):
-        contender_list = []
-
-        # TODO implement the function
-
-        return contender_list
 
     def _generate_new_parameters(self):
         print(f"There are {len(self.discard)} parameterizations to discard")
@@ -528,9 +520,56 @@ class CPPLConfiguration:
         )
 
         new_candidates_transformed, new_candidates = self._parallel_evolution_and_fitness()
-        # TODO continue
+        new_candidates_transformed = self.base.min_max_scalar.transform(new_candidates_transformed)
+        new_candidates_transformed = self.base.pca_obj_params.transform(new_candidates_transformed)
+        v_hat_new_candidates = np.zeros(self.new_candidates_size)
 
-    # TODO convert it into a class
+        for index in range(self.new_candidates_size):
+            context_vector = join_feature_map(
+                x=new_candidates_transformed[index],
+                y=self.pca_context_features,
+                mode=self.base.joint_featured_map_mode
+            )
+
+            v_hat_new_candidates[index] = np.exp(np.inner(self.base.theta_bar, context_vector))
+
+        best_new_candidates_list = (-v_hat_new_candidates).argsort()[0:discard_size]
+
+        for index, _ in enumerate(best_new_candidates_list):
+            best_new_candidate_param_set = random_genes.one_hot_decode(
+                genes=new_candidates[best_new_candidates_list[index]],
+                solver=self.base.args.solver,
+                param_value_dict=self.base.parameter_value_dict,
+                solver_parameters=self.base.solver_parameters
+            )
+            genes = random_genes.get_params_string_from_numeric_params(
+                genes=log_space_convert(
+                    limit_number=self.base.parameter_limit,
+                    param_set=best_new_candidate_param_set,
+                    solver_parameter=self.base.solver_parameters,
+                    exp=True
+                ),
+                solver=self.base.args.solver,
+                solver_parameters=self.base.solver_parameters
+            )
+
+            if type(self.discard) != list:
+                self.discard = np.asarray(self.discard)
+
+            set_param.set_contender_params(
+                contender_index='contender_' + str(self.discard[index]),
+                genes=genes,
+                solver_parameters=self.base.solver_parameters
+            )
+            self.update_logs(contender_index=self.discard[index], genes=genes)
+
+        new_contender_list = self._contender_list_including_generated(
+            contender_pool=self.base.contender_pool
+        )
+
+        return new_contender_list
+
+    # TODO convert it into a class #
     def _parallel_evolution_and_fitness(self):
         candidate_pameters = random_genes.one_hot_decode(
             genes=self.params[self.base.S_t[0]],
@@ -555,7 +594,7 @@ class CPPLConfiguration:
         for index, _ in enumerate(self.all_steps):
             step += self.all_steps[index]
             pool.apply_async(
-                func=self.evolution_and_fitness,
+                func=self._evolution_and_fitness,
                 args=(self.all_steps[index]),
                 callback=self.save_result
             )
@@ -572,7 +611,7 @@ class CPPLConfiguration:
 
         return new_candidates_transformed, new_candidates
 
-    def evolution_and_fitness(self, new_candidates_size):
+    def _evolution_and_fitness(self, new_candidates_size):
         # Generation approach based on genetic mechanism with mutation and random individuals
         new_candidates = np.zeros(shape=(new_candidates_size, len(self.new_candidates[0])))
 
@@ -626,6 +665,23 @@ class CPPLConfiguration:
         new_candidates_transformed = result[0]
         new_candidates = result[1]
         self.async_results.append([new_candidates_transformed, new_candidates])
+##################################################################################
+
+    def _contender_list_including_generated(self, contender_pool):
+        contender_list = []
+
+        _, _, _, _, _, v_hat = self.base.get_context_feature_matrix(filename=self.filename)
+
+        S_t = (-v_hat).argsort()[0 : self.base.subset_size]
+
+        for index in range(self.base.subset_size):
+            contender_list.append('contender_' + str(S_t[index]))
+
+        return contender_list
+
+    def update_logs(self, contender_index, genes):
+        self.base.contender_pool["contender_" + str(contender_index)] = genes  # TODO: change to local pool after clarification
+        self.base.tracking_pool.info(self.base.contender_pool)
 
 
 class CPPLAlgo(CPPLConfiguration):
