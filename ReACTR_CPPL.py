@@ -468,7 +468,7 @@ def _init_features(directory):
         for row in reader:
             if len(row[0]) != 0:
                 next_features = row
-                train_list.append(row[0])  # Question: What's the use of this?
+                train_list.append(row[0])
                 next_features.pop(0)
                 next_features = [float(j) for j in next_features]
                 features.append(next_features)
@@ -872,7 +872,6 @@ def cppl_update(
         contender_pool,
         contender_list,
         winner,
-        Y_t,  # Question: No use because it is not getting used in the function
         theta_hat,
         theta_bar,
         S_t,
@@ -1115,7 +1114,6 @@ if __name__ == "__main__":
                         contender_pool=contender_pool,
                         contender_list=contender_list,
                         winner=winner,
-                        Y_t=winner_index_time_step,
                         theta_hat=theta_hat,
                         theta_bar=theta_bar,
                         S_t=S_t,

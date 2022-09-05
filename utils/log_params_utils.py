@@ -50,7 +50,7 @@ def log_space_convert(limit_number, param_set, solver_parameter, exp=False):
 
         return param_set
 
-    if exp:
+    if exp:  # Question: What is exp? Use?
 
         maxval_indices, minval_indices, param_names, params, to_delete = params_init(
             solver_parameter
