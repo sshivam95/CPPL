@@ -68,7 +68,7 @@ def get_contenders(
                                                       grad_op_sum,
                                                       hess_sum,
                                                       subset_size,  #
-                                                      n,
+                                                      n, # n_arms
                                                       omega,
                                                       theta_bar,
                                                       time_step,
@@ -112,143 +112,140 @@ def get_contenders(
                     break
 
         if len(discard) > 0:
-            print("There are",
-                  len(discard),
-                  "parameterizations to discard")
-            discard_size = len(discard)
-
-            print(
-                "\n *********************************",
-                "\n Generating new Parameterizations!",
-                "\n *********************************\n",
-            )
-
-            # with randomness
-            new_candidates_size = 1000
-
-            random_parameters, _ = read_parameters(Pool,
-                                                   solver)
-
-            random_parameters = np.asarray(random_parameters)
-
-            random_parameters = log_space_convert(
-                parameter_limit,
-                random_parameters,
-                solver_parameters
-            )
-
-            best_candid = log_space_convert(
-                parameter_limit,
-                random_genes.one_hot_decode(
-                    random_parameters[
-                        S_t[0],
-                    ],
-                    solver,
-                    param_value_dict=param_value_dict,
-                    solver_parameters=solver_parameters,
-                ),
-                solver_parameters,
-                exp=True,
-            )
-
-            second_candid = log_space_convert(
-                parameter_limit,
-                random_genes.one_hot_decode(
-                    random_parameters[
-                        S_t[1],
-                    ],
-                    solver,
-                    param_value_dict=param_value_dict,
-                    solver_parameters=solver_parameters,
-                ),
-                solver_parameters,
-                exp=True,
-            )
-
-            new_candidates_transformed, new_candidates = parallel_evolution_and_fitness(
-                subset_size=subset_size,
-                new_candidates_size=new_candidates_size,
-                S_t=S_t,
-                params=params,
-                solver=solver,
-                param_value_dict=param_value_dict,
-                solver_parameters=solver_parameters,
-                genes_set=random_genes.genes_set,
-                One_Hot_decode=random_genes.one_hot_decode,
-                log_space_convert=log_space_convert,
-                Pool=Pool,
-                parameter_limit=parameter_limit,
-                best_candid=best_candid,
-                second_candid=second_candid,
-            )
-
-            new_candidates_transformed = min_max_scaler.transform(
-                new_candidates_transformed
-            )
-            new_candidates_transformed = pca_obj_params.transform(
-                new_candidates_transformed
-            )
-
-            v_hat_new_candidates = np.zeros(new_candidates_size)
-            for i in range(new_candidates_size):
-                X = join_feature_map(
-                    x=new_candidates_transformed[i],
-                    y=features[0],
-                    mode=jfm)
-                v_hat_new_candidates[i] = np.exp(np.inner(theta_bar,
-                                                          X))
-
-            best_new_candidates_ind = (-v_hat_new_candidates).argsort()[0:discard_size]
-
-            for i in range(len(best_new_candidates_ind)):
-                genes = random_genes.get_params_string_from_numeric_params(
-                    log_space_convert(
-                        parameter_limit,
-                        random_genes.one_hot_decode(
-                            new_candidates[best_new_candidates_ind[i]],
-                            solver,
-                            param_value_dict=param_value_dict,
-                            solver_parameters=solver_parameters,
-                        ),
-                        solver_parameters,
-                        exp=True,
-                    ),
-                    solver,
-                    solver_parameters,
-                )
-
-                # Question: What is the use of this check? It is not being used anywhere.
-                if type(discard) == list:
-                    discard_is_list = True
-                else:
-                    discard.tolist()
-
-                set_param.set_contender_params(
-                    "contender_" + str(discard[i]),
-                    genes,
-                    solver_parameters
-                )
-                Pool["contender_" + str(discard[i])] = genes
-                tracking_Pool.info(Pool)
-
-            contender_list = contender_list_including_generated(
-                Pool,
-                solver,
-                parameter_limit,
-                params,
-                solver_parameters,
-                theta_bar,
-                jfm,
-                min_max_scaler,
-                pca_obj_params,
-                standard_scaler,
-                pca_obj_inst,
-                directory,
-                filename,
-                subset_size,
-            )
+            contender_list = generate_new_parameters(Pool, S_t, contender_list, directory, discard, features, filename,
+                                                     jfm, min_max_scaler, param_value_dict, parameter_limit, params,
+                                                     pca_obj_inst, pca_obj_params, solver, solver_parameters,
+                                                     standard_scaler, subset_size, theta_bar, tracking_Pool)
 
     return X_t, contender_list, discard
+
+
+def generate_new_parameters(Pool, S_t, contender_list, directory, discard, features, filename, jfm, min_max_scaler,
+                            param_value_dict, parameter_limit, params, pca_obj_inst, pca_obj_params, solver,
+                            solver_parameters, standard_scaler, subset_size, theta_bar, tracking_Pool):
+    print("There are",
+          len(discard),
+          "parameterizations to discard")
+    discard_size = len(discard)
+    print(
+        "\n *********************************",
+        "\n Generating new Parameterizations!",
+        "\n *********************************\n",
+    )
+    # with randomness
+    new_candidates_size = 1000
+    random_parameters, _ = read_parameters(Pool,
+                                           solver)
+    random_parameters = np.asarray(random_parameters)
+    random_parameters = log_space_convert(
+        parameter_limit,
+        random_parameters,
+        solver_parameters
+    )
+    best_candid = log_space_convert(
+        parameter_limit,
+        random_genes.one_hot_decode(
+            random_parameters[
+                S_t[0],
+            ],
+            solver,
+            param_value_dict=param_value_dict,
+            solver_parameters=solver_parameters,
+        ),
+        solver_parameters,
+        exp=True,
+    )
+    second_candid = log_space_convert(
+        parameter_limit,
+        random_genes.one_hot_decode(
+            random_parameters[
+                S_t[1],
+            ],
+            solver,
+            param_value_dict=param_value_dict,
+            solver_parameters=solver_parameters,
+        ),
+        solver_parameters,
+        exp=True,
+    )
+    new_candidates_transformed, new_candidates = parallel_evolution_and_fitness(
+        subset_size=subset_size,
+        new_candidates_size=new_candidates_size,
+        S_t=S_t,
+        params=params,
+        solver=solver,
+        param_value_dict=param_value_dict,
+        solver_parameters=solver_parameters,
+        genes_set=random_genes.genes_set,
+        One_Hot_decode=random_genes.one_hot_decode,
+        log_space_convert=log_space_convert,
+        Pool=Pool,
+        parameter_limit=parameter_limit,
+        best_candid=best_candid,
+        second_candid=second_candid,
+    )
+    new_candidates_transformed = min_max_scaler.transform(
+        new_candidates_transformed
+    )
+    new_candidates_transformed = pca_obj_params.transform(
+        new_candidates_transformed
+    )
+    v_hat_new_candidates = np.zeros(new_candidates_size)
+    for i in range(new_candidates_size):
+        X = join_feature_map(
+            x=new_candidates_transformed[i],
+            y=features[0],
+            mode=jfm)
+        v_hat_new_candidates[i] = np.exp(np.inner(theta_bar,
+                                                  X))
+    best_new_candidates_ind = (-v_hat_new_candidates).argsort()[0:discard_size]
+    for i in range(len(best_new_candidates_ind)):
+        genes = random_genes.get_params_string_from_numeric_params(
+            log_space_convert(
+                parameter_limit,
+                random_genes.one_hot_decode(
+                    new_candidates[best_new_candidates_ind[i]],
+                    solver,
+                    param_value_dict=param_value_dict,
+                    solver_parameters=solver_parameters,
+                ),
+                solver_parameters,
+                exp=True,
+            ),
+            solver,
+            solver_parameters,
+        )
+
+        # Question: What is the use of this check? It is not being used anywhere.
+        if type(discard) == list:
+            discard_is_list = True
+        else:
+            discard.tolist()
+
+        set_param.set_contender_params(
+            "contender_" + str(discard[i]),
+            genes,
+            solver_parameters
+        )
+        Pool["contender_" + str(discard[i])] = genes
+        tracking_Pool.info(Pool)
+    contender_list = contender_list_including_generated(
+        Pool,
+        solver,
+        parameter_limit,
+        params,
+        solver_parameters,
+        theta_bar,
+        jfm,
+        min_max_scaler,
+        pca_obj_params,
+        standard_scaler,
+        pca_obj_inst,
+        directory,
+        filename,
+        subset_size,
+    )
+    return contender_list
 
 
 def preselection_UCB(S_t, X_t, d, grad, grad_op_sum, hess_sum, subset_size, n, omega, theta_bar, time_step, v_hat):
@@ -469,7 +466,7 @@ def parallel_evolution_and_fitness(
         all_steps.append(int(step_size))
     all_steps.append(int(last_step))
 
-    step = 0
+    step = 0  # Question: What's  the use?
 
     pool = parallelPool(processes=subset_size)
 
@@ -482,7 +479,7 @@ def parallel_evolution_and_fitness(
                 second_candid,
                 len(new_candidates[0]),
                 all_steps[i],
-                params_length,
+                params_length,  # candidate_parameters_size
                 genes_set,
                 One_Hot_decode,
                 log_space_convert,
