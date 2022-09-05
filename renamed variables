@@ -8,3 +8,4 @@ no_comp_pca_features -> self.n_pca_features_components
 num_pca_params_components -> self.n_pca_params_components
 pca_obj_inst -> self.pca_obj_instances
 _get_pca_params -> _init_pca_params
+params_length -> candidate_pameters_size
