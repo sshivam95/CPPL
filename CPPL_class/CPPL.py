@@ -22,6 +22,7 @@ from utils.utility_functions import (
     join_feature_map,
 )
 from utils.log_params_utils import log_space_convert
+from tournament_classes.tournament import Tournament
 
 
 class CPPLBase:
@@ -105,7 +106,8 @@ class CPPLBase:
         self.gamma = self.args.gamma  # Parameter CPPL (Best value = 1)
         self.alpha = self.args.alpha  # Parameter CPPL (Best value = 0.2)
         self.time_step = 0  # initial time step = 0 where initialization takes place
-        self.Y_t = 0  # The Winning contender, the top-ranked arm among the subset St provided by the underlying contextualized PL model in case of winner feedback
+        self.Y_t = 0  # The Winning contender, the top-ranked arm among the subset St provided by the underlying
+        # contextualized PL model in case of winner feedback
         self.S_t = []  # Subset of contenders Line 9 of CPPL
 
         self.winner_known = True
@@ -442,7 +444,8 @@ class CPPLConfiguration:
         ) = self.base.get_context_feature_matrix(filename=self.filename)
         self.discard = []
 
-        ucb = UCB(cppl_base_object=self.base, context_matrix=X_t, degree_of_freedom=degree_of_freedom, n_arms=self.n_arms,
+        ucb = UCB(cppl_base_object=self.base, context_matrix=X_t, degree_of_freedom=degree_of_freedom,
+                  n_arms=self.n_arms,
                   v_hat=v_hat)
         if self.base.time_step == 0:
             self.base.S_t, self.contender_list_str, v_hat = ucb.run()  # Get the subset S_t
@@ -564,7 +567,6 @@ class CPPLConfiguration:
             self.update_logs(contender_index=self.discard[index], genes=genes)
 
         new_contender_list = self._contender_list_including_generated(
-            contender_pool=self.base.contender_pool
         )
 
         return new_contender_list
@@ -665,14 +667,15 @@ class CPPLConfiguration:
         new_candidates_transformed = result[0]
         new_candidates = result[1]
         self.async_results.append([new_candidates_transformed, new_candidates])
-##################################################################################
 
-    def _contender_list_including_generated(self, contender_pool):
+    ##################################################################################
+
+    def _contender_list_including_generated(self):
         contender_list = []
 
         _, _, _, _, _, v_hat = self.base.get_context_feature_matrix(filename=self.filename)
 
-        S_t = (-v_hat).argsort()[0 : self.base.subset_size]
+        S_t = (-v_hat).argsort()[0: self.base.subset_size]
 
         for index in range(self.base.subset_size):
             contender_list.append('contender_' + str(S_t[index]))
@@ -680,7 +683,8 @@ class CPPLConfiguration:
         return contender_list
 
     def update_logs(self, contender_index, genes):
-        self.base.contender_pool["contender_" + str(contender_index)] = genes  # TODO: change to local pool after clarification
+        self.base.contender_pool[
+            "contender_" + str(contender_index)] = genes  # TODO: change to local pool after clarification
         self.base.tracking_pool.info(self.base.contender_pool)
 
 
@@ -736,12 +740,10 @@ class CPPLAlgo(CPPLConfiguration):
                             self.base.time_step = 1
                         self.base.time_step += 1
                     else:
-                        contender_list = self._contender_list_including_generated(
-                            filename=filename
-                        )
+                        contender_list = self._contender_list_including_generated()
 
-                        # TODO conitnue
-                        pass
+                    tournament = Tournament(cppl_base=self.base, filename=filename, contender_list=contender_list)
+                    process = tournament.get_process()
         pass
 
 
