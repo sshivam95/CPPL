@@ -23,11 +23,10 @@ from sklearn.decomposition import PCA
 import utils.log_params_utils
 from Configuration_Functions import CPPLConfig
 from Configuration_Functions import file_logging
-from Configuration_Functions import log_on_huge_params
 from Configuration_Functions import pws
 from Configuration_Functions import random_genes
 from Configuration_Functions import set_param
-from Configuration_Functions import tournament as solving
+from tournament_classes import parallel_run as solving
 from Configuration_Functions.random_genes import genes_set
 
 
@@ -591,7 +590,7 @@ def _init_data_structures():
     mp.freeze_support()
     event = Manager().list([0])
     winner = Manager().list([None])
-    res = Manager().list([[0, 0] for _ in range(subset_size)])
+    process_results = Manager().list([[0, 0] for _ in range(subset_size)])
     interim = mp.Manager().list([0 for _ in range(subset_size)])
     if solver == "cadical":
         interim = Manager().list([[0, 0, 0, 0, 0, 0] for _ in range(subset_size)])
@@ -616,7 +615,7 @@ def _init_data_structures():
         multiprocessing_event,
         event,
         winner,
-        res,
+        process_results,
         interim,
         new_time,
         process_ids,
@@ -774,7 +773,7 @@ def start_run(
 
 def tournament(
         args,
-        n,
+        subset_size,
         contender_list,
         start_run,
         filename,
@@ -787,7 +786,7 @@ def tournament(
         event,
         new_time,
 ):
-    for core in range(n):
+    for core in range(subset_size):
         contender = str(contender_list[core])
 
         param_string = set_param.set_contender_params(
@@ -817,7 +816,7 @@ def tournament(
         )
 
     # Starting processes
-    for core in range(n):
+    for core in range(subset_size):
         process[core].start()
 
     return process
@@ -1052,7 +1051,7 @@ if __name__ == "__main__":
 
                 process = tournament(
                     args=args,
-                    n=subset_size,
+                    subset_size=subset_size,
                     contender_list=contender_list,
                     start_run=start_run,
                     filename=file_path,
