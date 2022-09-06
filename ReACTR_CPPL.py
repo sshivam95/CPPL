@@ -26,7 +26,7 @@ from Configuration_Functions import file_logging
 from Configuration_Functions import pws
 from Configuration_Functions import random_genes
 from Configuration_Functions import set_param
-from tournament_classes import parallel_run as solving
+from tournament_classes import run_solver as solving
 from Configuration_Functions.random_genes import genes_set
 
 
@@ -1081,11 +1081,11 @@ if __name__ == "__main__":
                 print(".\n.\n.\n.\n")
 
                 # Observe the run and stop it if one parameterization finished
-                watch_run(process,
-                          start,
-                          subset_size,
-                          multiprocess_event,
-                          process_ids)
+                watch_run(process=process,
+                          start=start,
+                          n=subset_size,
+                          ev=multiprocess_event,
+                          pids=process_ids)
 
                 results, interim_res = close_run(
                     subset_size,
@@ -1154,9 +1154,9 @@ if __name__ == "__main__":
             # else:
             #     run = False
 
-        else:
-            # When directory has no more instances, break
-            break
+            else:
+                # When directory has no more instances, break
+                break
 
 print(
     "\n  #######################\n ",
