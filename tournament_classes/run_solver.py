@@ -2,7 +2,7 @@ from subprocess import Popen, PIPE, STDOUT, run
 import subprocess
 
 
-def start(params, timelimit, filename, solver):
+def start(params, time_limit, filename, solver):
 
     if solver == "cadical":
 
@@ -12,7 +12,7 @@ def start(params, timelimit, filename, solver):
                 "--no-witness",
                 *params,
                 "-t",
-                str(timelimit),
+                str(time_limit),
                 f"{filename}",
             ],
             stdout=PIPE,
@@ -24,7 +24,7 @@ def start(params, timelimit, filename, solver):
         proc = subprocess.Popen(
             [
                 "solvers/./glucose_static",
-                "-cpu-lim=" + str(timelimit),
+                "-cpu-lim=" + str(time_limit),
                 *params,
                 f"{filename}",
             ],
@@ -47,7 +47,7 @@ def start(params, timelimit, filename, solver):
                 "-f",
                 f"{filename}",
                 "-to",
-                str(timelimit),
+                str(time_limit),
                 "-g",
                 str(params),
             ],

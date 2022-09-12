@@ -1,3 +1,4 @@
+"""Tournament file for running the tournament"""
 import logging
 import os
 import signal
@@ -6,19 +7,27 @@ import time
 from CPPL_class.CPPL import CPPLBase
 import multiprocessing as mp
 
-from Configuration_Functions import set_param
+from utils import set_param
 from tournament_classes import run_solver
 
 
 class Tournament:
     def __init__(
-            self,
-            cppl_base: CPPLBase,
-            filepath: str,
-            contender_list: list,
-            logger_name="Tournament",
-            logger_level=logging.INFO,
+        self,
+        cppl_base: CPPLBase,
+        filepath: str,
+        contender_list: list,
+        logger_name="Tournament",
+        logger_level=logging.INFO,
     ) -> None:
+        """
+
+        :param cppl_base:
+        :param filepath:
+        :param contender_list:
+        :param logger_name:
+        :param logger_level:
+        """
         self.base = cppl_base
         self.subset_size = self.base.subset_size
         self.solver = self.base.args.solver
@@ -76,8 +85,7 @@ class Tournament:
             )
 
             self.process[core] = mp.Process(
-                target=self.start_run,
-                args=[core, parameter_str]
+                target=self.start_run, args=[core, parameter_str]
             )
 
         # Start processes
@@ -104,7 +112,7 @@ class Tournament:
 
         process = run_solver.start(
             params=params,
-            timelimit=self.timeout,
+            time_limit=self.timeout,
             filename=self.filename,
             solver=self.solver,
         )
@@ -117,9 +125,7 @@ class Tournament:
 
             if line != b"":
                 output = run_solver.check_output(
-                    line=line,
-                    interim=self.interim[core],
-                    solver=self.solver
+                    line=line, interim=self.interim[core], solver=self.solver
                 )
 
                 if output != "No output" and output is not None:
@@ -144,7 +150,7 @@ class Tournament:
             if self.results[core][0] != int(0):
                 sub_now = time.process_time()
                 self.results[core][1] = (
-                        self.results[core][1] + sub_now - self.subset_start_time[core]
+                    self.results[core][1] + sub_now - self.subset_start_time[core]
                 )
                 self.multiprocessing_event.set()
                 self.event[0] = 1
@@ -163,19 +169,17 @@ class Tournament:
 
                     for index in range(self.subset_size):
                         if (
-                                self.subset_start_time[index] - time.process_time()
-                                >= self.new_time[0]
-                                and index != core
+                            self.subset_start_time[index] - time.process_time()
+                            >= self.new_time[0]
+                            and index != core
                         ):
                             os.kill(
-                                __pid=self.process_ids[index],
-                                __signal=signal.SIGKILL
+                                __pid=self.process_ids[index], __signal=signal.SIGKILL
                             )
 
                     time.sleep(0.1)
                     try:
-                        os.kill(__pid=process.pid,
-                                __signal=signal.SIGKILL)
+                        os.kill(__pid=process.pid, __signal=signal.SIGKILL)
 
                     except:
                         continue
@@ -184,9 +188,9 @@ class Tournament:
                     time.sleep(0.1)
                     for index in range(self.subset_size):
                         if (
-                                self.subset_start_time[index] - time.process_time()
-                                >= self.new_time[0]
-                                and index != core
+                            self.subset_start_time[index] - time.process_time()
+                            >= self.new_time[0]
+                            and index != core
                         ):
                             try:
                                 os.system("killall cadical")
@@ -204,8 +208,7 @@ class Tournament:
                 self.event[0] = 1
                 for core in range(self.subset_size):
                     try:
-                        os.kill(__pid=self.process_ids[core],
-                                __signal=signal.SIGKILL)
+                        os.kill(__pid=self.process_ids[core], __signal=signal.SIGKILL)
                     except:
                         continue
 
@@ -221,8 +224,7 @@ class Tournament:
     def close_run(self) -> None:
         # Prepare interim for processing (str -> int)
         for core in range(self.subset_size):
-            self.interim[core] = list(map(int,
-                                          self.interim[core]))
+            self.interim[core] = list(map(int, self.interim[core]))
 
         # Close processes
         for core in range(self.subset_size):
