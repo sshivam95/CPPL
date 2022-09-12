@@ -180,7 +180,7 @@ def _main():
         "-tfn",
         "--times_file_name",
         type=str,
-        default="Times_per_instance_CPPL.txt",
+        default="Times_per_instance_CPPL",
         help="""Name of the file which the times needed to solve instances are tracked in""",
     )
     parser.add_argument(
@@ -566,9 +566,9 @@ def _init_pool(args, solver_parameters, solver):
                 )
 
     elif args.data == "y":
-        pool_file = "Pool.txt"
+        pool_file = f"Pool_{solver}.txt"
         if args.exp is None:
-            pool_file = "Pool.txt"
+            pool_file = f"Pool_{solver}.txt"
         elif args.exp == "y":
             pool_file = f"Pool_exp_{solver}.txt"
         with open(f"{pool_file}",
