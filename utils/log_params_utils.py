@@ -1,135 +1,140 @@
 import math
 
+import numpy as np
 
-def log_space_convert(limit_number, param_set, solver_parameter, exp=False):
-    """Create a parameter set based on the maximum and minimum values in the json parameter file.
 
-    Parameters
-    ----------
-    limit_number
-    param_set
-    solver_parameter
-    exp
-
-    Returns
-    -------
-    param_set
+def log_space_convert(
+    limit_number: int, param_set: np.ndarray, solver_parameter: dict, exp: bool = False
+) -> np.ndarray:
     """
-    if not exp:
+    Convert the parameter set based on the maximum and minimum values in the json parameter file to logarithm space.
 
-        maxval_indices, minval_indices, param_names, params, to_delete = params_init(
-            solver_parameter
-        )
+    :param limit_number: Upper and lower limit of the minimum and maximum values from the solver parameter set.
+    :param param_set: Parameters to be converted.
+    :param solver_parameter: Parameters of the solver.
+    :param exp: ??
+    :return:  A log converted parameter set.
+    """
+
+    max_val_indices, min_val_indices, param_names, params, to_delete = _params_init(
+        solver_parameters=solver_parameter
+    )
+
+    if not exp:
 
         for index in sorted(to_delete, reverse=True):
             del param_names[index]
 
         update_max_min_values(
-            limit_number, maxval_indices, minval_indices, param_names, params
+            limit_number=limit_number,
+            max_val_indices=max_val_indices,
+            min_val_indices=min_val_indices,
+            param_names=param_names,
+            params=params,
         )
 
         for i, _ in enumerate(param_set):
-            for j, _ in enumerate(maxval_indices):
-                if float(param_set[i][maxval_indices[j]]) > 0:
-                    param_set[i][maxval_indices[j]] = math.log(
-                        float(param_set[i][maxval_indices[j]])
+            for j, _ in enumerate(max_val_indices):
+                if float(param_set[i][max_val_indices[j]]) > 0:
+                    param_set[i][max_val_indices[j]] = math.log(
+                        float(param_set[i][max_val_indices[j]])
                     )
-                elif float(param_set[i][maxval_indices[j]]) < 0:
-                    param_set[i][maxval_indices[j]] = -math.log(
-                        float(-param_set[i][maxval_indices[j]])
+                elif float(param_set[i][max_val_indices[j]]) < 0:
+                    param_set[i][max_val_indices[j]] = -math.log(
+                        float(-param_set[i][max_val_indices[j]])
                     )
-            for j, _ in enumerate(minval_indices):
-                if float(param_set[i][minval_indices[j]]) < 0:
-                    param_set[i][minval_indices[j]] = -math.log(
-                        float(-param_set[i][minval_indices[j]])
+            for j, _ in enumerate(min_val_indices):
+                if float(param_set[i][min_val_indices[j]]) < 0:
+                    param_set[i][min_val_indices[j]] = -math.log(
+                        float(-param_set[i][min_val_indices[j]])
                     )
-                elif float(param_set[i][minval_indices[j]]) > 0:
-                    param_set[i][minval_indices[j]] = math.log(
-                        float(param_set[i][minval_indices[j]])
+                elif float(param_set[i][min_val_indices[j]]) > 0:
+                    param_set[i][min_val_indices[j]] = math.log(
+                        float(param_set[i][min_val_indices[j]])
                     )
 
         return param_set
 
     if exp:  # Question: What is exp? Use?
 
-        maxval_indices, minval_indices, param_names, params, to_delete = params_init(
-            solver_parameter
-        )
-
         update_max_min_values(
-            limit_number, maxval_indices, minval_indices, param_names, params
+            limit_number=limit_number,
+            max_val_indices=max_val_indices,
+            min_val_indices=min_val_indices,
+            param_names=param_names,
+            params=params,
         )
 
-        for j, _ in enumerate(maxval_indices):
-            if float(param_set[maxval_indices[j]]) > 0:
-                param_set[maxval_indices[j]] = math.exp(
-                    float(param_set[maxval_indices[j]])
+        for j, _ in enumerate(max_val_indices):
+            if float(param_set[max_val_indices[j]]) > 0:
+                param_set[max_val_indices[j]] = math.exp(
+                    float(param_set[max_val_indices[j]])
                 )
-            elif float(param_set[maxval_indices[j]]) < 0:
-                param_set[maxval_indices[j]] = -math.exp(
-                    float(-param_set[maxval_indices[j]])
+            elif float(param_set[max_val_indices[j]]) < 0:
+                param_set[max_val_indices[j]] = -math.exp(
+                    float(-param_set[max_val_indices[j]])
                 )
-        for j, _ in enumerate(minval_indices):
-            if float(param_set[minval_indices[j]]) < 0:
-                param_set[minval_indices[j]] = -math.exp(
-                    float(-param_set[minval_indices[j]])
+        for j, _ in enumerate(min_val_indices):
+            if float(param_set[min_val_indices[j]]) < 0:
+                param_set[min_val_indices[j]] = -math.exp(
+                    float(-param_set[min_val_indices[j]])
                 )
-            elif float(param_set[minval_indices[j]]) > 0:
-                param_set[minval_indices[j]] = math.exp(
-                    float(param_set[minval_indices[j]])
+            elif float(param_set[min_val_indices[j]]) > 0:
+                param_set[min_val_indices[j]] = math.exp(
+                    float(param_set[min_val_indices[j]])
                 )
 
         return param_set
 
 
 def update_max_min_values(
-    limit_number, maxval_indices, minval_indices, param_names, params
-):
-    """Update the minimum and maximum value indices.
+    limit_number: int,
+    max_val_indices: list,
+    min_val_indices: list,
+    param_names: list,
+    params: dict,
+) -> None:
+    """
+    Update the minimum and maximum values based on the parameters of the solver.
 
-    Parameters
-    ----------
-    limit_number
-    maxval_indices
-    minval_indices
-    param_names
-    params
+    :param limit_number: Upper and lower limit of the minimum and maximum values from the solver parameter set.
+    :param max_val_indices: List of indices of the maximum values in the parameter set of the solver.
+    :param min_val_indices: List of indices of the minimum values in the parameter set of the solver.
+    :param param_names: List of keys in the parameter set of the solver.
+    :param params: Parameter set of the solver.
     """
     for i, _ in enumerate(param_names):
         if params[param_names[i]]["paramtype"] == "continuous":
             if params[param_names[i]]["maxval"] >= limit_number:
-                maxval_indices.append(i)
+                max_val_indices.append(i)
             if params[param_names[i]]["minval"] <= -limit_number:
-                minval_indices.append(i)
+                min_val_indices.append(i)
         if params[param_names[i]]["paramtype"] == "discrete":
             if params[param_names[i]]["maxval"] >= limit_number:
-                maxval_indices.append(i)
+                max_val_indices.append(i)
             if params[param_names[i]]["minval"] <= -limit_number:
-                minval_indices.append(i)
-    for i, _ in enumerate(minval_indices):
-        if minval_indices[i] in maxval_indices:
-            del minval_indices[i]
+                min_val_indices.append(i)
+    for i, _ in enumerate(min_val_indices):
+        if min_val_indices[i] in max_val_indices:
+            del min_val_indices[i]
 
 
-def params_init(json_param_file):
-    """Initialize parameters to be returned.
-
-    Parameters
-    ----------
-    json_param_file
-
-    Returns
-    -------
-    maxval_indices
-    minval_indices
-    param_names
-    params
-    to_delete
+def _params_init(solver_parameters: dict) -> (list, list, list, dict, list):
     """
-    param_names = list(json_param_file.keys())
-    params = json_param_file
-    maxval_indices = []
-    minval_indices = []
+    Initialize parameters attributes.
+
+    :param solver_parameters: Solver's parameters
+
+    :return max_val_indices: List of indices of the maximum values in the parameter set of the solver.
+    :return min_val_indices: List of indices of the minimum values in the parameter set of the solver.
+    :return param_names: List of keys in the parameter set of the solver.
+    :return params: Parameter set of the solver.
+    :return to_delete: Parameters to be deleted.
+    """
+    param_names = list(solver_parameters.keys())
+    params = solver_parameters
+    max_val_indices = []
+    min_val_indices = []
     to_delete = []
     for i, _ in enumerate(param_names):
         if params[param_names[i]]["paramtype"] == "categorical":
@@ -140,4 +145,4 @@ def params_init(json_param_file):
                 values = [min_val + j for j in range(value_range)]
                 if len(values) > 2:
                     to_delete.append(i)
-    return maxval_indices, minval_indices, param_names, params, to_delete
+    return max_val_indices, min_val_indices, param_names, params, to_delete

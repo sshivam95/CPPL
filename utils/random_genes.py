@@ -1,13 +1,13 @@
 """Random Genes Utils."""
-import json
 import math
 import random
 
 import numpy as np
 from numpy.random import choice
 
+from utils.utility_functions import get_solver_params
 
-# TODO: - prepare a class which has a cppl_base object for CPPLBASE class
+
 def get_all_min_and_max(solver_parameters):
     """
     Get the minimum and maximum values from the parameter file for the solver.
@@ -58,7 +58,9 @@ def genes_set(solver, solver_parameters=None):
     :param solver_parameters: The json parameter file.
     :return: genes set.
     """
-    param_names, params = validate_json_file(solver_parameters, solver)
+    param_names, params = get_solver_params(
+        solver_parameters=solver_parameters, solver=solver
+    )
 
     genes = [0 for i, _ in enumerate(param_names)]
 
@@ -224,7 +226,7 @@ def genes_set(solver, solver_parameters=None):
 
 # pylint: disable=bad-continuation,too-many-arguments,too-many-statements
 def get_log_distribution_params(
-        default, parameter_index, max_val, min_val, param_names, params, splittable
+    default, parameter_index, max_val, min_val, param_names, params, splittable
 ):
     """
     Return the parameters if the distribution is log.
@@ -272,9 +274,9 @@ def get_log_distribution_params(
         else:
             if probability_zero and "probabneg" in params[param_names[parameter_index]]:
                 probability_positive = (
-                        1
-                        - probability_zero
-                        - params[param_names[parameter_index]]["probabneg"]
+                    1
+                    - probability_zero
+                    - params[param_names[parameter_index]]["probabneg"]
                 )
             elif probability_zero:
                 probability_positive = (1 - probability_zero) / 2
@@ -294,8 +296,8 @@ def get_log_distribution_params(
                 if probability_zero:
                     probab_neg = 1 - probability_zero - probability_positive
                 elif (
-                        probability_zero
-                        and probability_positive == (1 - probability_zero) / 2
+                    probability_zero
+                    and probability_positive == (1 - probability_zero) / 2
                 ):
                     probab_neg = (1 - probability_zero) / 2
                 else:
@@ -355,7 +357,7 @@ def split_by_default(index, param_names, params):
 
 
 def one_hot_decode(
-        genes, solver, param_value_dict=None, solver_parameters=None, reverse=False
+    genes, solver, param_value_dict=None, solver_parameters=None, reverse=False
 ):
     """
     Reverse One-Hot Encoding based on param_solver.json.
@@ -367,13 +369,15 @@ def one_hot_decode(
     :param reverse:
     :return:
     """
-    param_names, params = validate_json_file(solver_parameters, solver)
+    param_names, params = get_solver_params(
+        solver_parameters=solver_parameters, solver=solver
+    )
 
     genes = list(genes)
 
     # one-hot encoding of previously one-hot decoded parameterization
     if (
-            reverse
+        reverse
     ):  # One-Hot decoding here (one-hot parameters back to solver specific representation)
 
         pool = genes
@@ -442,7 +446,7 @@ def one_hot_decode(
         for i, _ in enumerate(one_hot_tail):
             one_hot_tail_len += len(one_hot_tail[i])
 
-        one_hot_values = genes[len(genes) - one_hot_tail_len:]
+        one_hot_values = genes[len(genes) - one_hot_tail_len :]
 
         cat_int_values = []
 
@@ -482,7 +486,9 @@ def get_params_string_from_numeric_params(genes, solver, solver_parameters=None)
     :param solver_parameters:
     :return:
     """
-    param_names, params = validate_json_file(solver_parameters, solver)
+    param_names, params = get_solver_params(
+        solver_parameters=solver_parameters, solver=solver
+    )
 
     genes = list(genes)
 
@@ -494,26 +500,3 @@ def get_params_string_from_numeric_params(genes, solver, solver_parameters=None)
                 genes[i] = str(string_value)
 
     return genes
-
-
-def validate_json_file(solver_parameters, solver):
-    """
-    Validate if the parameter file is of type json.
-
-    :param solver_parameters:
-    :param solver:
-    :return:
-    """
-    if solver_parameters is None:
-        json_file_name = "params_" + str(solver)
-
-        with open(f"Configuration_Functions/{json_file_name}.json", "r") as file:
-            data = file.read()
-        params = json.loads(data)
-
-        param_names = list(params.keys())
-
-    else:
-        params = solver_parameters
-        param_names = list(params.keys())
-    return param_names, params
