@@ -9,11 +9,16 @@ def log_space_convert(
     """
     Convert the parameter set based on the maximum and minimum values in the json parameter file to logarithm space.
 
-    :param limit_number: Upper and lower limit of the minimum and maximum values from the solver parameter set.
-    :param param_set: Parameters to be converted.
-    :param solver_parameter: Parameters of the solver.
-    :param exp: ??
-    :return:  A log converted parameter set.
+    Parameters
+    ----------
+    limit_number : Upper and lower limit of the minimum and maximum values from the solver parameter set.
+    param_set : Parameters to be converted.
+    solver_parameter : Parameters of the solver.
+    exp : ??
+
+    Returns
+    -------
+    param_set : A log converted parameter set.
     """
 
     max_val_indices, min_val_indices, param_names, params, to_delete = _params_init(
@@ -25,7 +30,7 @@ def log_space_convert(
         for index in sorted(to_delete, reverse=True):
             del param_names[index]
 
-        update_max_min_values(
+        max_val_indices, min_val_indices = update_max_min_values(
             limit_number=limit_number,
             max_val_indices=max_val_indices,
             min_val_indices=min_val_indices,
@@ -57,7 +62,7 @@ def log_space_convert(
 
     if exp:  # Question: What is exp? Use?
 
-        update_max_min_values(
+        max_val_indices, min_val_indices = update_max_min_values(
             limit_number=limit_number,
             max_val_indices=max_val_indices,
             min_val_indices=min_val_indices,
@@ -93,15 +98,23 @@ def update_max_min_values(
     min_val_indices: list,
     param_names: list,
     params: dict,
-) -> None:
+) -> (list, list):
+
     """
     Update the minimum and maximum values based on the parameters of the solver.
 
-    :param limit_number: Upper and lower limit of the minimum and maximum values from the solver parameter set.
-    :param max_val_indices: List of indices of the maximum values in the parameter set of the solver.
-    :param min_val_indices: List of indices of the minimum values in the parameter set of the solver.
-    :param param_names: List of keys in the parameter set of the solver.
-    :param params: Parameter set of the solver.
+    Parameters
+    ----------
+    limit_number : Upper and lower limit of the minimum and maximum values from the solver parameter set.
+    max_val_indices : List of indices of the maximum values in the parameter set of the solver.
+    min_val_indices : List of indices of the minimum values in the parameter set of the solver.
+    param_names : List of keys in the parameter set of the solver.
+    params : Parameter set of the solver.
+
+    Returns
+    -------
+    max_val_indices : Updated list of indices of the maximum values in the parameter set of the solver.
+    min_val_indices : Updated list of indices of the minimum values in the parameter set of the solver.
     """
     for i, _ in enumerate(param_names):
         if params[param_names[i]]["paramtype"] == "continuous":
@@ -118,18 +131,24 @@ def update_max_min_values(
         if min_val_indices[i] in max_val_indices:
             del min_val_indices[i]
 
+    return max_val_indices, min_val_indices
+
 
 def _params_init(solver_parameters: dict) -> (list, list, list, dict, list):
     """
     Initialize parameters attributes.
 
-    :param solver_parameters: Solver's parameters
+    Parameters
+    ----------
+    solver_parameters : Solver's parameters
 
-    :return max_val_indices: List of indices of the maximum values in the parameter set of the solver.
-    :return min_val_indices: List of indices of the minimum values in the parameter set of the solver.
-    :return param_names: List of keys in the parameter set of the solver.
-    :return params: Parameter set of the solver.
-    :return to_delete: Parameters to be deleted.
+    Returns
+    -------
+    max_val_indices: List of indices of the maximum values in the parameter set of the solver.
+    min_val_indices: List of indices of the minimum values in the parameter set of the solver.
+    param_names: List of keys in the parameter set of the solver.
+    params: Parameter set of the solver.
+    to_delete: Parameters to be deleted.
     """
     param_names = list(solver_parameters.keys())
     params = solver_parameters

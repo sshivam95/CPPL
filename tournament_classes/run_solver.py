@@ -1,9 +1,25 @@
-from subprocess import Popen, PIPE, STDOUT, run
+from subprocess import Popen, PIPE
 import subprocess
+from typing import Union, Any
 
 
-def start(params, time_limit, filename, solver):
+def start(
+    params: list, time_limit: int, filename: str, solver: str
+) -> Union[Popen[bytes], Popen]:
+    """
+    Sub-routine of sub-process to solve problem instances using different solvers.
 
+    Parameters
+    ----------
+    params : Set of different combination of parameters to be used to solve the problem instances by the solver.
+    time_limit : Maximum time limit a solver can run, after this threshold the execution will stop.
+    filename : The problem instance file name.
+    solver : The name if the solver.
+
+    Returns
+    -------
+    proc : The subprocess.Popen object to run the solver with the given parameters in the sub-routine of parallel threads.
+    """
     if solver == "cadical":
 
         proc = subprocess.Popen(
@@ -57,8 +73,20 @@ def start(params, time_limit, filename, solver):
         return proc
 
 
-def check_output(line, interim, solver):
+def check_output(line: str, interim: list, solver: str) -> Union[list, str]:
+    """
+    Check the output of the solver on the problem instance.
 
+    Parameters
+    ----------
+    line : Each line in the problem instance file.
+    interim : Interim list of the threads.
+    solver : Solver's name used to solve the problem instances.
+
+    Returns
+    -------
+    The interim output of the subprocess.
+    """
     if solver == "cadical":
 
         if line != b"":
@@ -133,8 +161,34 @@ def check_output(line, interim, solver):
             return "No output"
 
 
-def check_if_solved(line, results, proc, event, non_nlock_read, solver):
+def check_if_solved(
+    line: str,
+    results: list[int],
+    proc: Union[Popen[bytes], Popen],
+    event: list[int],
+    non_nlock_read: Any,
+    solver: str,
+) -> Union[(list, list), str]:
+    """
+    Check if the solver has solved the problem instance. If yes, return the event and the result.
 
+    Parameters
+    ----------
+    line : Each line in the problem instance file.
+    results : Current result of the process.
+    proc : The subprocess object.
+    event : The event in the running thread.
+    non_nlock_read : A method to check the output of the process.
+    solver : Solver's name used to solve the problem instances.
+
+    Returns
+    -------
+    If the instance problem is solved then,
+        results :The results of the problem instance.
+        event : The event list including the one which finished first.
+    else,
+         str: Indicating 'No output'
+    """
     if solver == "cadical":
 
         if line != b"":

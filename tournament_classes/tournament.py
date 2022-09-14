@@ -22,11 +22,13 @@ class Tournament:
     ) -> None:
         """
 
-        :param cppl_base:
-        :param filepath:
-        :param contender_list:
-        :param logger_name:
-        :param logger_level:
+        Parameters
+        ----------
+        cppl_base :
+        filepath :
+        contender_list :
+        logger_name :
+        logger_level :
         """
         self.base = cppl_base
         self.subset_size = self.base.subset_size
@@ -74,12 +76,18 @@ class Tournament:
         self.start_time = time.time()
 
     def run(self) -> None:
+        """
+
+        Returns
+        -------
+
+        """
         for core in range(self.subset_size):
             contender = str(self.contender_list[core])
 
             parameter_str = set_param.set_contender_params(
                 contender_index=contender,
-                genes=self.pool[contender],
+                contender_pool=self.pool[contender],
                 solver_parameters=self.solver_parameter,
                 return_it=True,
             )
@@ -103,6 +111,17 @@ class Tournament:
             return ""
 
     def start_run(self, core: int, parameter_str: list[str]) -> None:
+        """
+
+        Parameters
+        ----------
+        core :
+        parameter_str :
+
+        Returns
+        -------
+
+        """
         self.subset_start_time[core] = time.process_time()
 
         if self.baseline:
@@ -198,6 +217,12 @@ class Tournament:
                                 continue
 
     def watch_run(self) -> None:
+        """
+
+        Returns
+        -------
+
+        """
         while any(proc.is_alive() for proc in self.process):
             time.sleep(1)
             now = time.time()
@@ -222,6 +247,12 @@ class Tournament:
                             continue
 
     def close_run(self) -> None:
+        """
+
+        Returns
+        -------
+
+        """
         # Prepare interim for processing (str -> int)
         for core in range(self.subset_size):
             self.interim[core] = list(map(int, self.interim[core]))

@@ -14,7 +14,7 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler, normalize
 
 import utils.utility_functions
 from utils import random_genes, set_param, file_logging
-from utils.Constants import Constants
+from utils.constants import Constants
 from preselection.upper_confidence_bound import UCB
 from utils.utility_functions import (
     get_problem_instance_list,
@@ -37,10 +37,10 @@ class CPPLBase:
     """
 
     def __init__(
-        self,
-        args,
-        logger_name="CPPLBase",
-        logger_level=logging.INFO,
+            self,
+            args,
+            logger_name="CPPLBase",
+            logger_level=logging.INFO,
     ):
         self.args = args
         self.subset_size = (
@@ -182,7 +182,7 @@ class CPPLBase:
         if self.args.train_number is not None:
             self.training = True
             for self.root, self.training_directory, self.training_file in sorted(
-                os.walk(self.directory)
+                    os.walk(self.directory)
             ):
                 continue
         else:
@@ -193,7 +193,7 @@ class CPPLBase:
         else:
             self.rounds_to_train = 0
 
-    def _get_solver_parameters(self):
+    def _get_solver_parameters(self) -> dict:
         json_file_name = "params_" + str(self.args.solver)
 
         with open(f"{Constants.PARAMS_JSON_FOLDER}/{json_file_name}.json", "r") as file:
@@ -202,8 +202,8 @@ class CPPLBase:
         param_names = list(parameters.keys())
 
         with open(
-            f"{Constants.PARAMS_JSON_FOLDER.value}/{Constants.PARAM_SCHEMA_JSON_FILE.value}",
-            "r",
+                f"{Constants.PARAMS_JSON_FOLDER.value}/{Constants.PARAM_SCHEMA_JSON_FILE.value}",
+                "r",
         ) as file:
             schema = file.read()
         schema_meta = json.loads(schema)
@@ -231,17 +231,17 @@ class CPPLBase:
                     )
                     set_param.set_contender_params(
                         contender_index=contender_index,
-                        genes=self.contender_pool[contender_index],
+                        contender_pool=self.contender_pool[contender_index],
                         solver_parameters=self.solver_parameters,
                     )
             else:
                 for contender_index in self.contender_pool:
-                    self.contender_pool[contender_index] = random_genes.genes_set(
+                    self.contender_pool[contender_index] = random_genes.get_genes_set(
                         solver=self.args.solver
                     )
                     set_param.set_contender_params(
                         contender_index=contender_index,
-                        genes=self.contender_pool[contender_index],
+                        contender_pool=self.contender_pool[contender_index],
                         solver_parameters=self.solver_parameters,
                     )
 
@@ -252,7 +252,7 @@ class CPPLBase:
                     )
                     set_param.set_contender_params(
                         contender_index=contender_index,
-                        genes=self.contender_pool[contender_index],
+                        contender_pool=self.contender_pool[contender_index],
                         solver_parameters=self.solver_parameters,
                     )
         elif self.args.data == "y":
@@ -264,7 +264,7 @@ class CPPLBase:
                 for contender_index in self.contender_pool:
                     set_param.set_contender_params(
                         contender_index=contender_index,
-                        genes=self.contender_pool[contender_index],
+                        contender_pool=self.contender_pool[contender_index],
                         solver_parameters=self.solver_parameters,
                     )
 
@@ -291,14 +291,14 @@ class CPPLBase:
     def _init_pca_features(self):
         # read features
         if os.path.isfile(
-            "Instance_Features/training_features_" + str(self.directory)[2:-1] + ".csv"
+                "Instance_Features/training_features_" + str(self.directory)[2:-1] + ".csv"
         ):
             pass
         else:
             print(
                 "\n\nThere needs to be a file with training instance features "
                 "named << training_features_" + str(self.directory)[2:-1] + ".csv >> in"
-                " the directory Instance_Features\n\n"
+                                                                            " the directory Instance_Features\n\n"
             )
             sys.exit(0)
 
@@ -320,7 +320,7 @@ class CPPLBase:
         features = []
         train_list = []
         with open(
-            f"Instance_Features/training_features_{self.directory}.csv", "r"
+                f"Instance_Features/training_features_{self.directory}.csv", "r"
         ) as csvFile:
             reader = csv.reader(csvFile)
             next(reader)
@@ -369,18 +369,18 @@ class CPPLBase:
         candidates_pool_dimensions = 4  # by default # Corresponds to n different parameterization (Pool of candidates)
         if self.joint_featured_map_mode == "concatenation":
             candidates_pool_dimensions = (
-                self.n_pca_features_components + self.n_pca_params_components
+                    self.n_pca_features_components + self.n_pca_params_components
             )
         elif self.joint_featured_map_mode == "kronecker":
             candidates_pool_dimensions = (
-                self.n_pca_features_components * self.n_pca_params_components
+                    self.n_pca_features_components * self.n_pca_params_components
             )
         elif self.joint_featured_map_mode == "polynomial":
             for index_pca_params in range(
-                (self.n_pca_features_components + self.n_pca_params_components) - 2
+                    (self.n_pca_features_components + self.n_pca_params_components) - 2
             ):
                 candidates_pool_dimensions = (
-                    candidates_pool_dimensions + 3 + index_pca_params
+                        candidates_pool_dimensions + 3 + index_pca_params
                 )
 
         return candidates_pool_dimensions
@@ -441,10 +441,10 @@ class CPPLBase:
 
 class CPPLConfiguration:
     def __int__(
-        self,
-        args,
-        logger_name="CPPLConfiguration",
-        logger_level=logging.INFO,
+            self,
+            args,
+            logger_name="CPPLConfiguration",
+            logger_level=logging.INFO,
     ):
         self.base = CPPLBase(args=args)
         self.logger = logging.getLogger(logger_name)
@@ -453,7 +453,14 @@ class CPPLConfiguration:
         self.filename = None
         self.async_results = []
 
-    def _get_contender_list(self, filename):
+    def _get_contender_list(self, filename: str):
+        """
+
+        :param filename:
+        :type filename:
+        :return:
+        :rtype:
+        """
         self.filename = filename
         (
             X_t,  # Context matrix
@@ -486,7 +493,7 @@ class CPPLConfiguration:
             genes = set_genes(solver_parameters=self.base.solver_parameters)
             set_param.set_contender_params(
                 contender_index="contender_0",
-                genes=genes,
+                contender_pool=genes,
                 solver_parameters=self.base.solver_parameters,
             )
             self.contender_list_str[0] = "contender_0"
@@ -500,10 +507,10 @@ class CPPLConfiguration:
             for arm1 in range(self.n_arms):
                 for arm2 in range(self.n_arms):
                     if (
-                        arm2 != arm1
-                        and v_hat[arm2] - confidence_t[arm2]
-                        >= v_hat[arm1] + confidence_t[arm1]
-                        and (not arm1 in self.discard)
+                            arm2 != arm1
+                            and v_hat[arm2] - confidence_t[arm2]
+                            >= v_hat[arm1] + confidence_t[arm1]
+                            and (not arm1 in self.discard)
                     ):
                         self.discard.append(arm1)
                         break
@@ -513,6 +520,12 @@ class CPPLConfiguration:
         return X_t, self.contender_list_str, self.discard
 
     def _generate_new_parameters(self):
+        """
+
+        Returns
+        -------
+
+        """
         print(f"There are {len(self.discard)} parameterizations to discard")
         discard_size = len(self.discard)
 
@@ -532,7 +545,7 @@ class CPPLConfiguration:
 
         self.best_candidate = log_space_convert(
             limit_number=self.base.parameter_limit,
-            param_set=random_genes.one_hot_decode(
+            param_set=random_genes.get_one_hot_decoded_param_set(
                 genes=random_parameters[self.base.S_t[0]],
                 solver=self.base.args.solver,
                 param_value_dict=self.base.parameter_value_dict,
@@ -544,7 +557,7 @@ class CPPLConfiguration:
 
         self.second_candidate = log_space_convert(
             limit_number=self.base.parameter_limit,
-            param_set=random_genes.one_hot_decode(
+            param_set=random_genes.get_one_hot_decoded_param_set(
                 genes=random_parameters[self.base.S_t[1]],
                 solver=self.base.args.solver,
                 param_value_dict=self.base.parameter_value_dict,
@@ -580,7 +593,7 @@ class CPPLConfiguration:
         best_new_candidates_list = (-v_hat_new_candidates).argsort()[0:discard_size]
 
         for index, _ in enumerate(best_new_candidates_list):
-            best_new_candidate_param_set = random_genes.one_hot_decode(
+            best_new_candidate_param_set = random_genes.get_one_hot_decoded_param_set(
                 genes=new_candidates[best_new_candidates_list[index]],
                 solver=self.base.args.solver,
                 param_value_dict=self.base.parameter_value_dict,
@@ -602,7 +615,7 @@ class CPPLConfiguration:
 
             set_param.set_contender_params(
                 contender_index="contender_" + str(self.discard[index]),
-                genes=genes,
+                contender_pool=genes,
                 solver_parameters=self.base.solver_parameters,
             )
             self.update_logs(contender_index=self.discard[index], genes=genes)
@@ -613,7 +626,7 @@ class CPPLConfiguration:
 
     # TODO convert it into a class
     def _parallel_evolution_and_fitness(self):
-        candidate_pameters = random_genes.one_hot_decode(
+        candidate_pameters = random_genes.get_one_hot_decoded_param_set(
             genes=self.params[self.base.S_t[0]],
             solver=self.base.args.solver,
             param_value_dict=self.base.parameter_value_dict,
@@ -664,12 +677,12 @@ class CPPLConfiguration:
         for candidate in range(self.new_candidates_size):
             random_individual = random.uniform(0, 1)
             next_candidate = np.zeros(self.candidate_pameters_size)
-            contender = random_genes.genes_set(
+            contender = random_genes.get_genes_set(
                 solver=self.base.args.solver,
                 solver_parameters=self.base.solver_parameters,
             )
-            genes, _ = self.cppl_utils.read_parameters(contender=contender)
-            mutation_genes = random_genes.one_hot_decode(
+            genes, _ = self.base.cppl_utils.read_parameters(contender=contender)
+            mutation_genes = random_genes.get_one_hot_decoded_param_set(
                 genes=genes,
                 solver=self.base.args.solver,
                 param_value_dict=self.base.parameter_value_dict,
@@ -693,7 +706,7 @@ class CPPLConfiguration:
             else:
                 new_candidates[candidate] = next_candidate
 
-        new_candidates = random_genes.one_hot_decode(
+        new_candidates = random_genes.get_one_hot_decoded_param_set(
             genes=new_candidates,
             solver=self.base.args.solver,
             solver_parameters=self.base.solver_parameters,
@@ -721,7 +734,7 @@ class CPPLConfiguration:
             filename=self.filename
         )
 
-        S_t = (-v_hat).argsort()[0 : self.base.subset_size]
+        S_t = (-v_hat).argsort()[0: self.base.subset_size]
 
         for index in range(self.base.subset_size):
             contender_list.append("contender_" + str(S_t[index]))
@@ -731,16 +744,16 @@ class CPPLConfiguration:
     def update_logs(self, contender_index, genes):
         self.base.contender_pool[
             "contender_" + str(contender_index)
-        ] = genes  # TODO: change to local pool after clarification
+            ] = genes  # TODO: change to local pool after clarification
         self.base.tracking_pool.info(self.base.contender_pool)
 
 
 class CPPLAlgo(CPPLConfiguration):
     def __init__(
-        self,
-        args,
-        logger_name="CPPLAlgo",
-        logger_level=logging.INFO,
+            self,
+            args,
+            logger_name="CPPLAlgo",
+            logger_level=logging.INFO,
     ):
         super().__init__(args=args)
         self.tournament = None
@@ -770,7 +783,7 @@ class CPPLAlgo(CPPLConfiguration):
 
                 # Run parametrization on instances
                 if (
-                    filename[dot:] == file_ending
+                        filename[dot:] == file_ending
                 ):  # Check if input file extension is same as required by solver
                     print(
                         "\n \n ######################## \n",
@@ -891,29 +904,29 @@ class CPPLAlgo(CPPLConfiguration):
         )
 
         self.base.theta_hat = (
-            self.base.theta_hat
-            + self.base.gamma
-            * self.base.time_step ** (-self.base.alpha)
-            * self.base.grad
+                self.base.theta_hat
+                + self.base.gamma
+                * self.base.time_step ** (-self.base.alpha)
+                * self.base.grad
         )
         self.base.theta_hat[self.base.theta_hat < 0] = 0
         self.base.theta_hat[self.base.theta_hat > 0] = 1
 
         # Update theta_bar
         self.base.theta_bar = (
-            (self.base.time_step - 1) * self.base.theta_bar / self.base.time_step
-            + self.base.theta_hat / self.base.time_step
+                (self.base.time_step - 1) * self.base.theta_bar / self.base.time_step
+                + self.base.theta_hat / self.base.time_step
         )
 
 
 class CPPLUtils:
     def __init__(
-        self,
-        pool,
-        solver,
-        solver_parameters,
-        logger_name="CPPLUtils",
-        logger_level=logging.INFO,
+            self,
+            pool,
+            solver,
+            solver_parameters,
+            logger_name="CPPLUtils",
+            logger_level=logging.INFO,
     ):
         self.logger = logging.getLogger(logger_name)
         self.logger.setLevel(logger_level)
@@ -944,9 +957,9 @@ class CPPLUtils:
                 new_contender_pool = self.pool
 
             new_params_list = []
-            for contender in new_contender_pool:
+            for new_contender in new_contender_pool:
                 new_params, parameter_value_dict = self.read_param_from_dict(
-                    contender=new_params_list[contender],
+                    contender=new_params_list[new_contender],
                     parameter_names=parameter_names,
                 )
                 new_params_list.append(new_params)

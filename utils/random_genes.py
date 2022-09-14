@@ -1,6 +1,7 @@
 """Random Genes Utils."""
 import math
 import random
+from typing import Union
 
 import numpy as np
 from numpy.random import choice
@@ -8,12 +9,18 @@ from numpy.random import choice
 from utils.utility_functions import get_solver_params
 
 
-def get_all_min_and_max(solver_parameters):
+def get_all_min_and_max(solver_parameters: dict) -> (list[int], list[int]):
     """
-    Get the minimum and maximum values from the parameter file for the solver.
+    Get the minimum and maximum values from the parameters of the solver.
 
-    :param solver_parameters: The parameter file in json format.
-    :return: all minimum and maximum values from the file.
+    Parameters
+    ----------
+    solver_parameters : The parameters of solver from the json file.
+
+    Returns
+    -------
+    all_min: All minimum values from the file.
+    all_max: All maximum values from the file.
     """
     params = solver_parameters
 
@@ -50,13 +57,19 @@ def get_all_min_and_max(solver_parameters):
 
 # pylint: disable=too-many-nested-blocks,too-many-locals,too-many-branches,too-many-statements
 # noinspection PyTypeChecker
-def genes_set(solver, solver_parameters=None):
+def get_genes_set(solver: str, solver_parameters: dict = None) -> list[int]:
     """
-    Return the gene set for a particular solver.
+    Return the gene set for a particular solver. The discarded parameteriyations (or contenders) are replaced by generating
 
-    :param solver: The solver instance for which the gene set is required.
-    :param solver_parameters: The json parameter file.
-    :return: genes set.
+
+    Parameters
+    ----------
+    solver : The solver instance for which the gene set is required.
+    solver_parameters : The parameters of solver from the json file.
+
+    Returns
+    -------
+    genes: The generated genes set.
     """
     param_names, params = get_solver_params(
         solver_parameters=solver_parameters, solver=solver
@@ -221,24 +234,46 @@ def genes_set(solver, solver_parameters=None):
             # default = params[param_names[parameter_index]]["default"]
             genes[parameter_index] = random.randint(0, 1)
 
-    return genes  # , params
+    return genes
 
 
 # pylint: disable=bad-continuation,too-many-arguments,too-many-statements
 def get_log_distribution_params(
-    default, parameter_index, max_val, min_val, param_names, params, splittable
-):
+    default: int,
+    parameter_index: int,
+    max_val: int,
+    min_val: int,
+    param_names: list,
+    params: dict,
+    splittable: bool,
+) -> (float, bool, float, bool, bool, float, float, float, list[float]):
     """
-    Return the parameters if the distribution is log.
+    Return the parameters in the logarithm space.
 
-    :param default:
-    :param parameter_index:
-    :param max_val:
-    :param min_val:
-    :param param_names:
-    :param params:
-    :param splittable:
-    :return:
+    Parameters
+    ----------
+    default : The default value of the parameter.
+    parameter_index : The parameter index.
+    max_val : Value of the `maxval` property of the solver's parameter at parameter index.
+    min_val : Value of the `minval` property of the solver's parameter at parameter index.
+    param_names : Parameter name of the solver's parameter at parameter index.
+    params : Solver's parameter set.
+    splittable : Boolean value of the parameter's `splitbydefault` property.
+
+    Returns
+    -------
+    high: Highest exponential value based on a random uniform distribution between with upper bound as
+                  `maxval` or log of `maxval` property (if `logonneg` is true) of solver parameter.
+    include_zero: Boolean value of the `includezero` property of solver parameter.
+    log_max_val: Logarithm of the value of `maxval` property of the solver's parameter at parameter index.
+    log_on_neg: Boolean value of the `logonneg` property of solver parameter.
+    log_on_pos: Boolean value of the `logonpos` property of solver parameter.
+    low: Lowest exponential value based on a random uniform distribution between with lower bound as
+        `minval` or log of `minval` property (if `logonneg` is true) of solver parameter.
+    probability_positive: Value of the `probabpos` or `probabneg` property (whichever is available) of the
+                          solver parameter.
+    probability_zero: Value of the `probabilityzero` property (if available else 0.1) of the solver parameter.
+    weights: Probability weights of the parameter at the given index.
     """
     log_max_val = math.log(max_val)
     if min_val <= 0:
@@ -266,11 +301,11 @@ def get_log_distribution_params(
                         probability_zero = 0.1
                     weights.append(probability_zero)
 
-    if "log_on_pos" in params[param_names[parameter_index]]:
-        if params[param_names[parameter_index]]["log_on_pos"]:
+    if "logonpos" in params[param_names[parameter_index]]:
+        if params[param_names[parameter_index]]["logonpos"]:
             log_on_pos = True
-        if "probab_pos" in params[param_names[parameter_index]]:
-            probability_positive = params[param_names[parameter_index]]["probab_pos"]
+        if "probabpos" in params[param_names[parameter_index]]:
+            probability_positive = params[param_names[parameter_index]]["probabpos"]
         else:
             if probability_zero and "probabneg" in params[param_names[parameter_index]]:
                 probability_positive = (
@@ -286,8 +321,8 @@ def get_log_distribution_params(
     else:
         log_on_pos = False
     if min_val < 0:
-        if "log_on_neg" in params[param_names[parameter_index]]:
-            if params[param_names[parameter_index]]["log_on_neg"]:
+        if "logonneg" in params[param_names[parameter_index]]:
+            if params[param_names[parameter_index]]["logonneg"]:
                 log_on_neg = True
                 log_min_val = math.log(-min_val)
             if "probabneg" in params[param_names[parameter_index]]:
@@ -336,38 +371,59 @@ def get_log_distribution_params(
     )
 
 
-def split_by_default(index, param_names, params):
+def split_by_default(
+    index: int, param_names: list, params: list
+) -> (int, int, int, bool):
     """
-    Check if the parameters names are splittable or not.
+    Check if the solver parameters have splittable by default property or not.
 
-    :param index:
-    :param param_names:
-    :param params:
-    :return:
+    Parameters
+    ----------
+    index : Index of the solver parameter.
+    param_names : Name of the solver parameter.
+    params : Parameter set of the solver.
+
+    Returns
+    -------
+    default: The default value of the parameter.
+    max_val: Max value of the parameter.
+    min_val: Min value of the parameter.
+    splittable: Boolean value whether the parameter `splitbydefault` is set to true or false
     """
     max_val = params[param_names[index]]["maxval"]
     min_val = params[param_names[index]]["minval"]
     default = None
+    splittable = False
     if "splitbydefault" in params[param_names[index]]:
         if params[param_names[index]]["splitbydefault"]:
             default = params[param_names[index]]["default"]
             splittable = True
             return default, max_val, min_val, splittable
-    return default, max_val, min_val, False
+    return default, max_val, min_val, splittable
 
 
-def one_hot_decode(
-    genes, solver, param_value_dict=None, solver_parameters=None, reverse=False
-):
+def get_one_hot_decoded_param_set(
+    genes: Union[list, np.ndarray],
+    solver: str,
+    param_value_dict: dict = None,
+    solver_parameters: dict = None,
+    reverse: bool = False,
+) -> list:
     """
-    Reverse One-Hot Encoding based on param_solver.json.
+    Decoding the parameters and returning new parameters or parameters like a one-hot vector back to solver specific
+    representation based on param_solver.json
 
-    :param genes:
-    :param solver:
-    :param param_value_dict:
-    :param solver_parameters:
-    :param reverse:
-    :return:
+    Parameters
+    ----------
+    genes : Genes or parameters (can be random) to be added in the paarameter pool
+    solver : name of the solver used to solve problem instances.
+    param_value_dict : Dictionary of contenders parameters.
+    solver_parameters : Dictionary of solver's parameters.
+    reverse : Boolean value whether the parameters are in reverse order or not.
+
+    Returns
+    -------
+    New or old set or parameters.
     """
     param_names, params = get_solver_params(
         solver_parameters=solver_parameters, solver=solver
@@ -474,17 +530,25 @@ def one_hot_decode(
                 k += 1
 
         return new_genes
+
     return genes
 
 
-def get_params_string_from_numeric_params(genes, solver, solver_parameters=None):
+def get_params_string_from_numeric_params(
+    genes: np.ndarry, solver: str, solver_parameters: dict = None
+) -> list[str]:
     """
-    Transform string categorical back to string based on params_solver.json.
+    Transform string categorical back to string based on solver parameters file `params_{solver}.json.`
 
-    :param genes:
-    :param solver:
-    :param solver_parameters:
-    :return:
+    Parameters
+    ----------
+    genes : Parameter set of the contender.
+    solver : Solver used to solve problem instances.
+    solver_parameters : The parameters used by solver to solve problem instances.
+
+    Returns
+    -------
+    genes: List of parameters in form of string if the solver parameter type is categorical.
     """
     param_names, params = get_solver_params(
         solver_parameters=solver_parameters, solver=solver
