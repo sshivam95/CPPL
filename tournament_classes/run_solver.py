@@ -1,6 +1,6 @@
 from subprocess import Popen, PIPE
 import subprocess
-from typing import Union, Any
+from typing import Union, Any, Iterable
 
 
 def start(
@@ -11,14 +11,19 @@ def start(
 
     Parameters
     ----------
-    params : Set of different combination of parameters to be used to solve the problem instances by the solver.
-    time_limit : Maximum time limit a solver can run, after this threshold the execution will stop.
-    filename : The problem instance file name.
-    solver : The name if the solver.
+    params : list
+        Set of different combination of parameters to be used to solve the problem instances by the solver.
+    time_limit : int
+        Maximum time limit a solver can run, after this threshold the execution will stop.
+    filename : str
+        The problem instance file name.
+    solver : str
+        The name if the solver.
 
     Returns
     -------
-    proc : The subprocess.Popen object to run the solver with the given parameters in the sub-routine of parallel threads.
+    proc : Union[Popen[bytes], Popen]
+        The subprocess.Popen object to run the solver with the given parameters in the sub-routine of parallel threads.
     """
     if solver == "cadical":
 
@@ -79,13 +84,17 @@ def check_output(line: str, interim: list, solver: str) -> Union[list, str]:
 
     Parameters
     ----------
-    line : Each line in the problem instance file.
-    interim : Interim list of the threads.
-    solver : Solver's name used to solve the problem instances.
+    line : str
+        Each line in the problem instance file.
+    interim : list
+        Interim list of the threads.
+    solver : str
+        Solver's name used to solve the problem instances.
 
     Returns
     -------
-    The interim output of the subprocess.
+    Union[list, str]
+        The interim output of the subprocess.
     """
     if solver == "cadical":
 
@@ -168,26 +177,35 @@ def check_if_solved(
     event: list[int],
     non_nlock_read: Any,
     solver: str,
-) -> Union[(list, list), str]:
+) -> tuple[Iterable, Iterable, Any]:
     """
     Check if the solver has solved the problem instance. If yes, return the event and the result.
 
     Parameters
     ----------
-    line : Each line in the problem instance file.
-    results : Current result of the process.
-    proc : The subprocess object.
-    event : The event in the running thread.
-    non_nlock_read : A method to check the output of the process.
-    solver : Solver's name used to solve the problem instances.
+    line : str
+        Each line in the problem instance file.
+    results : list[int]
+        Current result of the process.
+    proc : Union[list, str]
+        The subprocess object.
+    event : list[int]
+        The event in the running thread.
+    non_nlock_read : Any
+        A method to check the output of the process.
+    solver : str
+        Solver's name used to solve the problem instances.
 
     Returns
     -------
     If the instance problem is solved then,
-        results :The results of the problem instance.
-        event : The event list including the one which finished first.
+        results : list
+            The results of the problem instance.
+        event : list
+            The event list including the one which finished first.
     else,
-         str: Indicating 'No output'
+         str
+            Indicating 'No output'
     """
     if solver == "cadical":
 

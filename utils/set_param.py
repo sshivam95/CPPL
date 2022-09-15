@@ -12,14 +12,19 @@ def set_contender_params(
 
     Parameters
     ----------
-    contender_index : Index of the contender for parameterization.
-    contender_pool : The pool of contenders participating in the tournament.
-    solver_parameters : The parameter set used by the solver.
-    return_it : Boolean whether to return the parameter set.
+    contender_index : int
+        Index of the contender for parameterization.
+    contender_pool : dict
+        The pool of contenders participating in the tournament.
+    solver_parameters : dict
+        The parameter set used by the solver.
+    return_it : bool, default=False
+        Boolean whether to return the parameter set.
 
     Returns
     -------
-    parameter_set: The parameter set of the contender ot arm.
+    parameter_set: Optional[list]
+        The parameter set of the contender ot arm.
     """
     param_names = list(solver_parameters.keys())
     params = solver_parameters

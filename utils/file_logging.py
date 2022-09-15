@@ -16,10 +16,14 @@ class MyRotatingFileHandler(RotatingFileHandler):
 
         Parameters
         ----------
-        filename : Name of the file to write the logs in.
-        mode : default="w", The mode of the logger.
-        max_bytes : default=0, Maximum bytes a file can have
-        backup_count : default=0, Number of backups generated for the file
+        filename : str
+            Name of the file to write the logs in.
+        mode : str, default="w"
+            The mode of the logger.
+        max_bytes : int, default=0
+            Maximum bytes a file can have
+        backup_count : int, default=0
+            Number of backups generated for the file
         """
         BaseRotatingHandler.__init__(self, filename, mode, encoding=None, delay=False)
         self.maxBytes = max_bytes
@@ -33,13 +37,17 @@ def tracking_files(filename: str, logger_name: str, level: str) -> logging.getLo
 
     Parameters
     ----------
-    filename : Name of the file used for logging.
-    logger_name : Logger name.
-    level : Logger level.
+    filename : str
+        Name of the file used for logging.
+    logger_name : str
+        Logger name.
+    level : str
+        Logger level.
 
     Returns
     -------
-    logger: A logger with the specified logger name.
+    logger: logging.getLogger
+        A logger with the specified logger name.
     """
     logger = logging.getLogger(logger_name)
     logger.setLevel(level)

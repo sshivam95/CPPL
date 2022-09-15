@@ -11,14 +11,18 @@ def log_space_convert(
 
     Parameters
     ----------
-    limit_number : Upper and lower limit of the minimum and maximum values from the solver parameter set.
-    param_set : Parameters to be converted.
-    solver_parameter : Parameters of the solver.
-    exp : ??
+    limit_number : int
+        Upper and lower limit of the minimum and maximum values from the solver parameter set.
+    param_set : np.ndarray
+        Parameters to be converted.
+    solver_parameter : dict
+        Parameters of the solver.
+    exp : bool
 
     Returns
     -------
-    param_set : A log converted parameter set.
+    param_set : np.ndarray
+        A log converted parameter set.
     """
 
     max_val_indices, min_val_indices, param_names, params, to_delete = _params_init(
@@ -105,16 +109,23 @@ def update_max_min_values(
 
     Parameters
     ----------
-    limit_number : Upper and lower limit of the minimum and maximum values from the solver parameter set.
-    max_val_indices : List of indices of the maximum values in the parameter set of the solver.
-    min_val_indices : List of indices of the minimum values in the parameter set of the solver.
-    param_names : List of keys in the parameter set of the solver.
-    params : Parameter set of the solver.
+    limit_number : int
+        Upper and lower limit of the minimum and maximum values from the solver parameter set.
+    max_val_indices : list
+        List of indices of the maximum values in the parameter set of the solver.
+    min_val_indices : list
+        List of indices of the minimum values in the parameter set of the solver.
+    param_names : list
+        List of keys in the parameter set of the solver.
+    params : dict
+        Parameter set of the solver.
 
     Returns
     -------
-    max_val_indices : Updated list of indices of the maximum values in the parameter set of the solver.
-    min_val_indices : Updated list of indices of the minimum values in the parameter set of the solver.
+    max_val_indices : list
+        Updated list of indices of the maximum values in the parameter set of the solver.
+    min_val_indices : list
+        Updated list of indices of the minimum values in the parameter set of the solver.
     """
     for i, _ in enumerate(param_names):
         if params[param_names[i]]["paramtype"] == "continuous":
@@ -140,15 +151,21 @@ def _params_init(solver_parameters: dict) -> (list, list, list, dict, list):
 
     Parameters
     ----------
-    solver_parameters : Solver's parameters
+    solver_parameters : dict
+        Solver's parameters
 
     Returns
     -------
-    max_val_indices: List of indices of the maximum values in the parameter set of the solver.
-    min_val_indices: List of indices of the minimum values in the parameter set of the solver.
-    param_names: List of keys in the parameter set of the solver.
-    params: Parameter set of the solver.
-    to_delete: Parameters to be deleted.
+    max_val_indices: list
+        List of indices of the maximum values in the parameter set of the solver.
+    min_val_indices: list
+        List of indices of the minimum values in the parameter set of the solver.
+    param_names: list
+        List of keys in the parameter set of the solver.
+    params: dict
+        Parameter set of the solver.
+    to_delete: list
+        Parameters to be deleted.
     """
     param_names = list(solver_parameters.keys())
     params = solver_parameters

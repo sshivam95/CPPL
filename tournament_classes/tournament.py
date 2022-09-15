@@ -12,6 +12,7 @@ from tournament_classes import run_solver
 
 
 class Tournament:
+    """Tournament class for initialiting, runnning, watching and closing the parallel processes."""
     def __init__(
         self,
         cppl_base: CPPLBase,
@@ -24,11 +25,25 @@ class Tournament:
 
         Parameters
         ----------
-        cppl_base :
-        filepath :
-        contender_list :
-        logger_name :
-        logger_level :
+        cppl_base : CPPLBase
+            Class object for the Base CPPL class.
+        filepath : str
+            Path of the problem instance to be solved by the solver.
+        contender_list : list
+            List of various contender or arms, each having different values of the parameters used by the
+            solver to solve the problem instance.
+        logger_name : str, default={Class name}
+            Name of the logger.
+        logger_level : int, default=logging.INFO
+            Level of the logger.
+
+        Attributes
+        ----------
+        base : CPPLBase
+            Base class object.
+        subset_size : int
+            Size of subset of contender or arms. Equal to number of CPU processors in the system.
+        solver : str
         """
         self.base = cppl_base
         self.subset_size = self.base.subset_size
