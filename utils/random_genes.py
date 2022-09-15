@@ -67,7 +67,7 @@ def get_genes_set(solver: str, solver_parameters: dict = None) -> list[int]:
     Parameters
     ----------
     solver : str
-        The solver instance for which the gene set is required.
+        The solver name for which the gene set is required.
     solver_parameters : dict, default=None
         The parameters of solver from the json file.
 

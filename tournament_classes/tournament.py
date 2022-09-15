@@ -44,8 +44,44 @@ class Tournament:
         subset_size : int
             Size of subset of contender or arms. Equal to number of CPU processors in the system.
         solver : str
+            Solver used to solve the instances.
+        timeout : int
+            The maximum time the solver can take to solve the instance problem. Once timeout is reached, the process will be terminated.
+        solver_parameter : dict
+            The parameter set used by the solver.
+        pool : dict
+            The contender or arms pool.
+        baseline: bool
+            Set to true if only default parameterization of the solver needs to be run.
+        multiprocessing_event : multiprocessing.Event
+            An asyncio event object can be used to notify multiple asyncio tasks that some event has happened.
+        event : list[int]
+            A shared list object of the events in the tournament.
+        winner : list[int]
+            A shared list object of the winner in the tournament. It contains only a single element which is the winner among the arms in the subset participating in the tournament.
+        process_results : list[int]
+            A shared list object of the process's results in the tournament.
+        interim : list[int]
+            A shared list object of the interim outputs of a process based on the solver in the tournament.
+        new_best_time : list[int]
+            A shared list object of the new best time of the winner after each round of the tournament.
+        process_ids : list[int]
+            A shared list object of the process ids in the tournament.
+        substart_start_time : list[int]
+            A shared list object of the start time of each arm in the subset.
+        process : list[str]
+            A list of process names in the tournament.
+        interim_results : list[int]
+            A list of all the interim results of the solvers in the tournament.
+        start_time : float
+            The start time of the tournament.
         """
         self.base = cppl_base
+        self.filename = filepath
+        self.contender_list = contender_list
+        self.logger = logging.getLogger(logger_name)
+        self.logger.setLevel(logger_level)
+
         self.subset_size = self.base.subset_size
         self.solver = self.base.args.solver
         self.timeout = self.base.args.timeout
@@ -53,11 +89,6 @@ class Tournament:
         self.pool = self.base.contender_pool
         self.baseline = self.base.args.baselineperf
 
-        self.contender_list = contender_list
-        self.logger = logging.getLogger(logger_name)
-        self.logger.setLevel(logger_level)
-
-        self.filename = filepath
         self.multiprocessing_event = mp.Event()
         mp.freeze_support()
         self.event = mp.Manager().list([0])
@@ -78,7 +109,7 @@ class Tournament:
             self.interim = mp.Manager().list(
                 [[1000000, 100, 0, 0] for _ in range(self.subset_size)]
             )
-        self.new_time = mp.Manager().list([self.timeout])
+        self.new_best_time = mp.Manager().list([self.timeout])
         self.process_ids = mp.Manager().list([[0] for _ in range(self.subset_size)])
         self.subset_start_time = mp.Manager().list(
             [[0] for _ in range(self.subset_size)]
@@ -91,16 +122,11 @@ class Tournament:
         self.start_time = time.time()
 
     def run(self) -> None:
-        """
-
-        Returns
-        -------
-
-        """
+        """Run the tournament on a subset of contenders from the contender pool."""
         for core in range(self.subset_size):
             contender = str(self.contender_list[core])
 
-            parameter_str = set_param.set_contender_params(
+            contender_parameter_set = set_param.set_contender_params(
                 contender_index=contender,
                 contender_pool=self.pool[contender],
                 solver_parameters=self.solver_parameter,
@@ -108,7 +134,7 @@ class Tournament:
             )
 
             self.process[core] = mp.Process(
-                target=self.start_run, args=[core, parameter_str]
+                target=self.start_run, args=[core, contender_parameter_set]
             )
 
         # Start processes
@@ -117,6 +143,18 @@ class Tournament:
 
     @staticmethod
     def non_nlock_read(output: str) -> str:
+        """Read the output from the solver on the problem instance.
+
+        Parameters
+        ----------
+        output : str
+            Output from the solver for the problem instance.
+
+        Returns
+        -------
+        str
+            Return the single line from the output parameter.
+        """
         # fd = output.fileno()
         # fl = fcntl.fcntl(fd, fcntl.F_GETFL)
         # fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
@@ -125,24 +163,24 @@ class Tournament:
         except:
             return ""
 
-    def start_run(self, core: int, parameter_str: list[str]) -> None:
-        """
+    def start_run(self, core: int, contender_parameter_set: list[str]) -> None:
+        """Start running each process in the tournament. 
+
+        Each process represents each arm in the subset from the pool.
 
         Parameters
         ----------
-        core :
-        parameter_str :
-
-        Returns
-        -------
-
+        core : int
+            The index of the arm. Here, the index represents the arm number as well.
+        contender_parameter_set : list[str]
+            The parameters of the arm related to the index.
         """
         self.subset_start_time[core] = time.process_time()
 
         if self.baseline:
             params = []
         else:
-            params = parameter_str
+            params = contender_parameter_set
 
         process = run_solver.start(
             params=params,
@@ -190,7 +228,7 @@ class Tournament:
                 self.event[0] = 1
                 self.winner[0] = core
                 self.process_results[core] = self.results[core][:]
-                self.new_time[0] = self.results[core][1]
+                self.new_best_time[0] = self.results[core][1]
                 awaiting = False
 
             if self.event[0] == 1 or self.multiprocessing_event.is_set():
@@ -204,7 +242,7 @@ class Tournament:
                     for index in range(self.subset_size):
                         if (
                             self.subset_start_time[index] - time.process_time()
-                            >= self.new_time[0]
+                            >= self.new_best_time[0]
                             and index != core
                         ):
                             os.kill(
@@ -223,7 +261,7 @@ class Tournament:
                     for index in range(self.subset_size):
                         if (
                             self.subset_start_time[index] - time.process_time()
-                            >= self.new_time[0]
+                            >= self.new_best_time[0]
                             and index != core
                         ):
                             try:
@@ -232,12 +270,7 @@ class Tournament:
                                 continue
 
     def watch_run(self) -> None:
-        """
-
-        Returns
-        -------
-
-        """
+        """Check if any process has terminated."""
         while any(proc.is_alive() for proc in self.process):
             time.sleep(1)
             now = time.time()
@@ -262,12 +295,7 @@ class Tournament:
                             continue
 
     def close_run(self) -> None:
-        """
-
-        Returns
-        -------
-
-        """
+        """If the execution of a process has stopped, update the results of the run."""
         # Prepare interim for processing (str -> int)
         for core in range(self.subset_size):
             self.interim[core] = list(map(int, self.interim[core]))
