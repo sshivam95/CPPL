@@ -140,3 +140,4 @@ dmypy.json
 /.idea/watcherTasks.xml
 /contender_pool.json
 /.vscode/launch.json
+.idea/CPPL.iml
