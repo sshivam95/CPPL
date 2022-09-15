@@ -403,10 +403,10 @@ class CPPLBase:
         params_transformed = self.pca_obj_params.transform(params)
         # construct X_t (context specific (instance information) feature matrix ( and parameterization information))
         n_arms = params.shape[0]  # Distinct Parameters or available arms
-        context_vector_dimension = len(
+        degree_of_freedom = len(
             self.theta_bar
         )  # Distinct Parameters or available arms
-        context_matrix = np.zeros((n_arms, context_vector_dimension))
+        context_matrix = np.zeros((n_arms, degree_of_freedom))
         for i in range(n_arms):
             next_context_vector = join_feature_map(
                 x=params_transformed[
@@ -424,7 +424,7 @@ class CPPLBase:
         v_hat = np.zeros(n_arms)  # Line 7 in CPPL algorithm
         for i in range(n_arms):
             v_hat[i] = np.exp(np.inner(self.theta_bar, context_matrix[i, :]))
-        return context_matrix, context_vector_dimension, features, n_arms, params, v_hat
+        return context_matrix, degree_of_freedom, features, n_arms, params, v_hat
 
     def get_features(self, filename):
         with open(f"Instance_Features/Features_{self.directory}.csv", "r") as csvFile:

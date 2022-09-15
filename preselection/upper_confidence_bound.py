@@ -4,14 +4,16 @@ from utils.utility_functions import hessian
 
 
 class UCB:
+    """The Upper Confidence Bound algorithm with Context."""
     def __init__(
         self,
-        cppl_base_object,
-        context_matrix,
-        degree_of_freedom,  # context vector dimension (len of theta_bar)
-        n_arms,  # Number of parameters
-        v_hat,  # estimated unknown contextualized utility parameter
+        cppl_base_object: CPPLBase,
+        context_matrix: np.ndarray,
+        degree_of_freedom: int,  # degree of freedom (len of theta_bar)
+        n_arms: int,  # Number of parameters
+        v_hat: float,  # estimated unknown contextualized utility parameter
     ):
+        
         self.base = cppl_base_object
         self.S_t = self.base.S_t
         self.context_matrix = context_matrix
