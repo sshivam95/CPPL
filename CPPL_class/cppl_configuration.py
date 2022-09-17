@@ -1,6 +1,8 @@
+"""A configuration class for CPPL algorithm."""
 import logging
 import multiprocessing as mp
 import random
+from typing import List, Tuple, Union
 
 import numpy as np
 
@@ -12,6 +14,18 @@ from utils.utility_functions import set_genes, join_feature_map
 
 
 class CPPLConfiguration:
+    """A CPPL configuration class which handles the configuration functionality ofthe CPPL algorithm.
+
+    Parameters
+    ----------
+    args : _type_
+        _description_
+    logger_name : str, optional
+        _description_, by default "CPPLConfiguration"
+    logger_level : _type_, optional
+        _description_, by default logging.INFO
+    """
+
     def __int__(
         self,
         args,
@@ -25,13 +39,18 @@ class CPPLConfiguration:
         self.filename = None
         self.async_results = []
 
-    def _get_contender_list(self, filename: str):
-        """
+    def _get_contender_list(self, filename: str) -> Tuple[np.ndarray, List[str], List]:
+        """_summary_
 
-        :param filename:
-        :type filename:
-        :return:
-        :rtype:
+        Parameters
+        ----------
+        filename : str
+            _description_
+
+        Returns
+        -------
+        Tuple[np.ndarray, List[str], List]
+            _description_
         """
         self.filename = filename
         (
@@ -91,12 +110,13 @@ class CPPLConfiguration:
 
         return X_t, self.contender_list_str, self.discard
 
-    def _generate_new_parameters(self):
-        """
+    def _generate_new_parameters(self) -> List:
+        """_summary_
 
         Returns
         -------
-
+        List
+            _description_
         """
         print(f"There are {len(self.discard)} parameterizations to discard")
         discard_size = len(self.discard)
@@ -197,7 +217,14 @@ class CPPLConfiguration:
         return new_contender_list
 
     # TODO convert it into a class
-    def _parallel_evolution_and_fitness(self):
+    def _parallel_evolution_and_fitness(self) -> Tuple[List, List]:
+        """_summary_
+
+        Returns
+        -------
+        Tuple[List, List]
+            _description_
+        """
         candidate_pameters = random_genes.get_one_hot_decoded_param_set(
             genes=self.params[self.base.S_t[0]],
             solver=self.base.args.solver,
@@ -240,7 +267,21 @@ class CPPLConfiguration:
 
         return new_candidates_transformed, new_candidates
 
-    def _evolution_and_fitness(self, new_candidates_size):
+    def _evolution_and_fitness(
+        self, new_candidates_size: List
+    ) -> Tuple[np.ndarray, List]:
+        """_summary_
+
+        Parameters
+        ----------
+        new_candidates_size : List
+            _description_
+
+        Returns
+        -------
+        Tuple[np.ndarray, List]
+            _description_
+        """
         # Generation approach based on genetic mechanism with mutation and random individuals
         new_candidates = np.zeros(
             shape=(new_candidates_size, len(self.new_candidates[0]))
@@ -299,7 +340,14 @@ class CPPLConfiguration:
 
     ##################################################################################
 
-    def _contender_list_including_generated(self):
+    def _contender_list_including_generated(self) -> List[str]:
+        """_summary_
+
+        Returns
+        -------
+        List[str]
+            _description_
+        """
         contender_list = []
 
         _, _, _, _, _, v_hat = self.base.get_context_feature_matrix(
@@ -313,7 +361,16 @@ class CPPLConfiguration:
 
         return contender_list
 
-    def update_logs(self, contender_index, genes):
+    def update_logs(self, contender_index: Union[int, str], genes: List[str]) -> None:
+        """_summary_
+
+        Parameters
+        ----------
+        contender_index : Union[int, str]
+            _description_
+        genes : List[str]
+            _description_
+        """
         self.base.contender_pool[
             "contender_" + str(contender_index)
         ] = genes  # TODO: change to local pool after clarification

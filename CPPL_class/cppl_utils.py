@@ -1,4 +1,6 @@
+"""Utilities in the CPPL algorithm."""
 import logging
+from typing import List, Tuple
 
 import numpy as np
 
@@ -6,6 +8,25 @@ import utils.utility_functions
 
 
 class CPPLUtils:
+    """_summary_
+
+    Parameters
+    ----------
+    pool : _type_
+        _description_
+    solver : _type_
+        _description_
+    solver_parameters : _type_
+        _description_
+    logger_name : str, optional
+        _description_, by default "CPPLUtils"
+    logger_level : _type_, optional
+        _description_, by default logging.INFO
+
+    Attributes
+    ----------
+    """
+
     def __init__(
         self,
         pool,
@@ -13,7 +34,7 @@ class CPPLUtils:
         solver_parameters,
         logger_name="CPPLUtils",
         logger_level=logging.INFO,
-    ):
+    ) -> None:
         self.logger = logging.getLogger(logger_name)
         self.logger.setLevel(logger_level)
 
@@ -21,7 +42,19 @@ class CPPLUtils:
         self.solver = solver
         self.solver_parameters = solver_parameters
 
-    def read_parameters(self, contender=None):
+    def read_parameters(self, contender: List[int] = None) -> Tuple[np.ndarray, dict]:
+        """_summary_
+
+        Parameters
+        ----------
+        contender : List[int], optional
+            _description_, by default None
+
+        Returns
+        -------
+        Tuple[np.ndarray, dict]
+            _description_
+        """
         global parameter_value_dict
         parameter_names, params = utils.utility_functions.get_solver_params(
             solver_parameters=self.solver_parameters, solver=self.solver
@@ -51,7 +84,23 @@ class CPPLUtils:
                 new_params_list.append(new_params)
             return np.asarray(new_params_list), parameter_value_dict
 
-    def read_param_from_dict(self, contender, parameter_names):
+    def read_param_from_dict(
+        self, contender: List[int], parameter_names: List
+    ) -> Tuple[List[int], dict]:
+        """_summary_
+
+        Parameters
+        ----------
+        contender : List[int]
+            _description_
+        parameter_names : List
+            _description_
+
+        Returns
+        -------
+        Tuple[List[int], dict]
+            _description_
+        """
         global index
         next_params = contender
         params = self.solver_parameters

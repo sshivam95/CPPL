@@ -55,7 +55,7 @@ def hessian(
     Parameters
     ----------
     theta : np.ndarray
-        Score parameter of each arm in the contender pool.
+        Score parameter matrix where each row represents each arm in the contender pool.
     subset_arms : np.ndarray
         A subset of arms from the contender pool for solving the instances.
     context_matrix : np.ndarray
@@ -163,7 +163,7 @@ def json_validation(param: dict, schema: dict) -> bool:
     return True
 
 
-def set_genes(solver_parameters: dict) -> list:
+def set_genes(solver_parameters: dict) -> List:
     """
     Return genes based on solver's parameters.
 

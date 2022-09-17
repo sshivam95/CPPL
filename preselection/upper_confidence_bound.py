@@ -1,38 +1,48 @@
+import logging
+from typing import List, Tuple, Union
+
 import numpy as np
-from scipy.linalg import sqrtm
 from CPPL_class.cppl_base import CPPLBase
+from scipy.linalg import sqrtm
 from utils.utility_functions import hessian
 
 
 class UCB:
     """The Upper Confidence Bound algorithm with Context.
-    
+
     Parameters
     ----------
     cppl_base_object : CPPLBase
         CPPL base class object.
     context_matrix : np.ndarray
-        A context matrix where each element is a context vector for an arm. Each vector encodes featres of the context in which an arm must be chosen.
+        A context matrix where each element is a context vector for a arm. Each vector encodes features of the context in which a arm must be chosen.
     degree_of_freedom : int
         It is defined as the dimension of the joint feature map vector on the context features.
     n_arms : int
-        Total number of contenders in the pool.
+        Total number of arms in the pool.
     v_hat : np.ndarray
-        Estimated contextualized utility parameters matrix. Each row represent each arm or contender in the pool.
-    
+        A matrix where each row represents estimated contextualized utility parameters of each arm in the pool.
+
     Attributes
     ----------
     subset_size : int
-        The size of the subset of arms or contenders from the pool.
+        The size of the subset of arms from the pool.
     gradient : np.ndarray
-        A numpy array of size 
+        A numpy array of size n_arms which contains the gradient of the log-likelihood function in the partial winner feedback scenario for each arm in the pool.
     grad_op_sum : np.ndarray
+        The outer product of the gradient array over the time step.
     hess_sum : np.ndarray
+        The sum of the hessian matrix of the log-likelihood function in the partial winner feedback scenario over the time step.
     omega : float
+        A hyper-parameter which helps to determine the confidence intervals.
     theta_bar : np.ndarray
+        An array where each element is the mean of the estimated score parameters (theta_hat) over previous time steps. Initially equal to the estimated score parameters.
     time_step : int
-    confidence_t : float
+        The cuurent time step of the algorithm.
+    confidence_t : np.array, default=None
+        An array of size equal to `n_arms` where each elements contains the confidence interval of each arm in the pool.
     initial_step : bool
+        A boolean value indicating if the current time step is the initial one.
     """
 
     def __init__(
@@ -42,13 +52,17 @@ class UCB:
         degree_of_freedom: int,  # degree of freedom (len of theta_bar)
         n_arms: int,  # Number of parameters
         v_hat: np.ndarray,  # mean observed rewards
+        logger_name: str = "UCB",
+        logger_level: int = logging.INFO,
     ) -> None:
-        
+
         self.base = cppl_base_object
         self.context_matrix = context_matrix
         self.degree_of_freedom = degree_of_freedom
         self.n_arms = n_arms
         self.v_hat = v_hat
+        self.logger = logging.getLogger(logger_name)
+        self.logger.setLevel(logger_level)
 
         self.subset_size = self.base.subset_size
         self.gradient = self.base.grad
@@ -63,7 +77,25 @@ class UCB:
         else:
             self.initial_step = False
 
-    def run(self):
+    def run(
+        self,
+    ) -> Union[
+        Tuple[np.ndarray, List[str], np.ndarray],
+        Tuple[np.ndarray, np.ndarray, List[str], np.ndarray],
+    ]:
+        """Run the algorithm until completion.
+
+        Returns
+        -------
+        S_t : np.ndarray
+            The subset of arms from the pool which contains `subset_size` arms with the highest upper bounds on the latent utility.
+        confidence_t : np.ndarray
+            If the time_step is not the initial time step, returns the confidence bounds of each arm in the pool.
+        contender_list_str : List[str]
+            A list containing the arms in the subset.
+        v_hat : np.ndarray
+            An updated matrix where each row represents estimated contextualized utility parameters of each arm in the pool.
+        """
         if self.initial_step:
             self.step()
             contender_list_str = self._update_contender_list_str()
@@ -73,7 +105,8 @@ class UCB:
             contender_list_str = self._update_contender_list_str()
             return self.S_t, self.confidence_t, contender_list_str, self.v_hat
 
-    def step(self):
+    def step(self) -> None:
+        """Run one step of the algorithm."""
         if self.time_step == 0:
             self.S_t = self.get_best_subset()
         else:
@@ -119,14 +152,38 @@ class UCB:
             self.confidence_t = self.confidence_t / max(self.confidence_t)
             self.v_hat = self.v_hat / max(self.v_hat)
 
-    def get_best_subset(self, exception=True):
-        if exception:
-            return (-self.v_hat).argsort()[0 : self.subset_size]
-        else:
-            return (-(self.v_hat + self.confidence_t)).argsort()[0 : self.subset_size]
+    def get_best_subset(self, exception=True) -> np.ndarray:
+        """Returns the subset of arms from the pool which contains `subset_size` arms with the highest upper bounds on the latent utility.
 
-    def _update_contender_list_str(self):
+        Parameters
+        ----------
+        exception : bool, optional
+            If there is an exception while calculating the values of the confidence bounds and estimated utility, by default True
+
+        Returns
+        -------
+        best_subset : np.ndarray
+            The subset of arms from the pool which contains `subset_size` arms with the highest upper bounds on the latent utility.
+        """
+        best_subset = None
+        if exception:
+            best_subset = (-self.v_hat).argsort()[0 : self.subset_size]
+            return best_subset
+        else:
+            best_subset = (-(self.v_hat + self.confidence_t)).argsort()[
+                0 : self.subset_size
+            ]
+            return best_subset
+
+    def _update_contender_list_str(self) -> List[str]:
+        """Returns a list containing the arms in the subset.
+
+        Returns
+        -------
+        contender_list_str : List[str]
+            A string list containinig the arms in the best subset.
+        """
         contender_list_str = []
         for i in range(self.subset_size):
-            contender_list_str.append("contender_" + str(self.S_t))
+            contender_list_str.append("contender_" + str(self.S_t[i]))
         return contender_list_str

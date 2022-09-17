@@ -73,10 +73,10 @@ class Tournament:
         cppl_base: CPPLBase,
         filepath: str,
         contender_list: List,
-        logger_name="Tournament",
-        logger_level=logging.INFO,
+        logger_name: str = "Tournament",
+        logger_level: int = logging.INFO,
     ) -> None:
-        
+
         self.base = cppl_base
         self.filename = filepath
         self.contender_list = contender_list

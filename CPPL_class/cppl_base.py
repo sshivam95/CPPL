@@ -1,3 +1,5 @@
+"""The Base class of CPPL algorithm."""
+from argparse import Namespace
 import csv
 import json
 import logging
@@ -5,6 +7,7 @@ import multiprocessing as mp
 import os
 import pathlib
 import sys
+from typing import List, Tuple
 
 import numpy as np
 from sklearn.decomposition import PCA
@@ -29,15 +32,26 @@ class CPPLBase:
     ----------
     args: Namespace
         The namespace variable for all the arguments in the parser.
+    logger_name : str, optional
+            _description_, by default "CPPLBase"
+    logger_level : int, optional
+        _description_, by default logging.INFO
+
+    Arguments
+    ---------
+
     """
 
     def __init__(
         self,
-        args,
-        logger_name="CPPLBase",
-        logger_level=logging.INFO,
+        args: Namespace,
+        logger_name: str = "CPPLBase",
+        logger_level: int = logging.INFO,
     ):
         self.args = args
+        self.logger = logging.getLogger(logger_name)
+        self.logger.setLevel(logger_level)
+
         self.subset_size = (
             mp.cpu_count()
         )  # subset size (k) in algorithm =  number of cpu available
@@ -60,8 +74,6 @@ class CPPLBase:
             logger_name="CPPL_Pool",
             level=logger_level,
         )
-        self.logger = logging.getLogger(logger_name)
-        self.logger.setLevel(logger_level)
 
         # Initialization
         self._init_checks()  # Check whether folders exist for algorithm run and check the args values
@@ -124,8 +136,8 @@ class CPPLBase:
         self.winner_known = True
         self.is_finished = False
 
-    def _init_checks(self):
-
+    def _init_checks(self) -> None:
+        """_summary_"""
         # Check Instance problem directory in arguments
         if self.args.directory != "No Problem Instance Directory given":
             self._init_output_files()
@@ -189,6 +201,13 @@ class CPPLBase:
             self.rounds_to_train = 0
 
     def _get_solver_parameters(self) -> dict:
+        """_summary_
+
+        Returns
+        -------
+        dict
+            _description_
+        """
         json_file_name = "params_" + str(self.args.solver)
 
         with open(f"{Constants.PARAMS_JSON_FOLDER}/{json_file_name}.json", "r") as file:
@@ -213,7 +232,8 @@ class CPPLBase:
                 sys.exit(0)
         return parameters
 
-    def _init_pool(self):
+    def _init_pool(self) -> None:
+        """_summary_"""
         if self.args.data is None:
             pool_keys = [f"contender_{c}" for c in range(self.args.contenders)]
             self.contender_pool = dict.fromkeys(pool_keys, 0)
@@ -263,7 +283,8 @@ class CPPLBase:
                         solver_parameters=self.solver_parameters,
                     )
 
-    def _init_output_files(self):
+    def _init_output_files(self) -> None:
+        """_summary_"""
         self.directory = os.fsencode(self.args.directory)
         # path, dirs, files = next(os.walk(self.args.directory))
         if self.args.file_order == "ascending":
@@ -283,7 +304,14 @@ class CPPLBase:
                 self.problem_instance_list, file=file
             )  # Print all the instance in problem_instance_list.txt
 
-    def _init_pca_features(self):
+    def _init_pca_features(self) -> Tuple[StandardScaler, int, PCA, List]:
+        """_summary_
+
+        Returns
+        -------
+        Tuple[StandardScaler, int, PCA, List]
+            _description_
+        """
         # read features
         if os.path.isfile(
             "Instance_Features/training_features_" + str(self.directory)[2:-1] + ".csv"
@@ -311,7 +339,14 @@ class CPPLBase:
 
         return standard_scalar, n_pca_features_components, pca_obj_instances, train_list
 
-    def _read_training_features_csv(self):
+    def _read_training_features_csv(self) -> Tuple[np.ndarray, List]:
+        """_summary_
+
+        Returns
+        -------
+        Tuple[np.ndarray, List]
+            _description_
+        """
         features = []
         train_list = []
         with open(
@@ -332,8 +367,14 @@ class CPPLBase:
 
         return np.asarray(features), train_list
 
-    def _init_pca_params(self):
+    def _init_pca_params(self) -> Tuple[np.ndarray, dict, MinMaxScaler, int, PCA]:
+        """_summary_
 
+        Returns
+        -------
+        Tuple[np.ndarray, dict, MinMaxScaler, int, PCA]
+            _description_
+        """
         params, parameter_value_dict = self.cppl_utils.read_parameters()
         params = np.asarray(params)
         all_min, all_max = random_genes.get_all_min_and_max(self.solver_parameters)
@@ -359,7 +400,14 @@ class CPPLBase:
             pca_obj_params,
         )
 
-    def _get_candidates_pool_dimensions(self):
+    def _get_candidates_pool_dimensions(self) -> int:
+        """_summary_
+
+        Returns
+        -------
+        int
+            _description_
+        """
         self.joint_featured_map_mode = self.args.jfm  # Default="polynomial"
         candidates_pool_dimensions = 4  # by default # Corresponds to n different parameterization (Pool of candidates)
         if self.joint_featured_map_mode == "concatenation":
@@ -380,7 +428,21 @@ class CPPLBase:
 
         return candidates_pool_dimensions
 
-    def get_context_feature_matrix(self, filename):
+    def get_context_feature_matrix(
+        self, filename: str
+    ) -> Tuple[np.ndarray, int, np.ndarray, int, np.ndarray, np.ndarray]:
+        """_summary_
+
+        Parameters
+        ----------
+        filename : str
+            _description_
+
+        Returns
+        -------
+        Tuple[np.ndarray, int, np.ndarray, int, np.ndarray, np.ndarray]
+            _description_
+        """
         # read and preprocess instance features (PCA)
         features = self.get_features(filename=f"{filename}")
         features = self.standard_scalar.transform(features.reshape(1, -1))
@@ -419,7 +481,19 @@ class CPPLBase:
             v_hat[i] = np.exp(np.inner(self.theta_bar, context_matrix[i, :]))
         return context_matrix, degree_of_freedom, features, n_arms, params, v_hat
 
-    def get_features(self, filename):
+    def get_features(self, filename: str) -> np.ndarray:
+        """_summary_
+
+        Parameters
+        ----------
+        filename : str
+            _description_
+
+        Returns
+        -------
+        np.ndarray
+            _description_
+        """
         with open(f"Instance_Features/Features_{self.directory}.csv", "r") as csvFile:
             reader = csv.reader(csvFile)
             next(reader)

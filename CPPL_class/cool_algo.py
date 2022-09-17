@@ -9,12 +9,27 @@ from tournament_classes.tournament import Tournament
 
 
 class CPPLAlgo(CPPLConfiguration):
+    """_summary_
+
+    Parameters
+    ----------
+    args : _type_
+        _description_
+    logger_name : str, optional
+        _description_, by default "CPPLAlgo"
+    logger_level : _type_, optional
+        _description_, by default logging.INFO
+
+    Attributes
+    ----------
+    """
+
     def __init__(
         self,
         args,
         logger_name="CPPLAlgo",
         logger_level=logging.INFO,
-    ):
+    ) -> None:
         super().__init__(args=args)
         self.tournament = None
         self.contender_list = None
@@ -26,7 +41,8 @@ class CPPLAlgo(CPPLConfiguration):
         self.logger.setLevel(logger_level)
         self.winners_list = []
 
-    def run(self):
+    def run(self) -> None:
+        """_summary_"""
         # Read Instance file name to hand to solver
         # and check for format
         if self.solver == "cadical" or self.solver == "glucose":
@@ -137,7 +153,8 @@ class CPPLAlgo(CPPLConfiguration):
             "#######################\n",
         )
 
-    def update(self):
+    def update(self) -> None:
+        """_summary_"""
         self.current_pool = []
 
         for keys in self.base.contender_pool:
