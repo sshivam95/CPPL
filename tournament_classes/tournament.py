@@ -5,7 +5,7 @@ import signal
 import time
 from typing import List
 
-from CPPL_class.CPPL import CPPLBase
+from CPPL_class.cppl_base import CPPLBase
 import multiprocessing as mp
 
 from utils import set_param

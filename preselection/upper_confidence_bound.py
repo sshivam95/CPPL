@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.linalg import sqrtm
-from CPPL_class.CPPL import CPPLBase
+from CPPL_class.cppl_base import CPPLBase
 from utils.utility_functions import hessian
 
 
