@@ -5,7 +5,7 @@ from typing import List, Tuple, Union, Any, Iterable
 
 def start(
     params: List, time_limit: int, filename: str, solver: str
-) -> Union[Popen[bytes], Popen]:
+) -> Popen:
     """
     Sub-routine of sub-process to solve problem instances using different solvers.
 
@@ -22,7 +22,7 @@ def start(
 
     Returns
     -------
-    proc : Union[Popen[bytes], Popen]
+    proc : Popen
         The subprocess.Popen object to run the solver with the given parameters in the sub-routine of parallel threads.
     """
     if solver == "cadical":
@@ -173,7 +173,7 @@ def check_output(line: str, interim: List, solver: str) -> Union[List, str]:
 def check_if_solved(
     line: str,
     results: List[int],
-    proc: Union[Popen[bytes], Popen],
+    proc: Popen,
     event: List[int],
     non_nlock_read: Any,
     solver: str,
