@@ -3,7 +3,7 @@
 Run ``python3 CPPL_test_run.py -to 300 -d problem_instance_directory -p pws -s solver_name``
 """
 import argparse
-from CPPL_class.CPPL import CPPLAlgo
+from CPPL_class.cool_algo import CPPLAlgo
 from preselection import regret_minimizing_algorithm
 
 
