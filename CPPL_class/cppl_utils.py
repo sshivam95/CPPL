@@ -7,12 +7,12 @@ import utils.utility_functions
 
 class CPPLUtils:
     def __init__(
-            self,
-            pool,
-            solver,
-            solver_parameters,
-            logger_name="CPPLUtils",
-            logger_level=logging.INFO,
+        self,
+        pool,
+        solver,
+        solver_parameters,
+        logger_name="CPPLUtils",
+        logger_level=logging.INFO,
     ):
         self.logger = logging.getLogger(logger_name)
         self.logger.setLevel(logger_level)

@@ -10,10 +10,10 @@ from tournament_classes.tournament import Tournament
 
 class CPPLAlgo(CPPLConfiguration):
     def __init__(
-            self,
-            args,
-            logger_name="CPPLAlgo",
-            logger_level=logging.INFO,
+        self,
+        args,
+        logger_name="CPPLAlgo",
+        logger_level=logging.INFO,
     ):
         super().__init__(args=args)
         self.tournament = None
@@ -43,7 +43,7 @@ class CPPLAlgo(CPPLConfiguration):
 
                 # Run parametrization on instances
                 if (
-                        filename[dot:] == file_ending
+                    filename[dot:] == file_ending
                 ):  # Check if input file extension is same as required by solver
                     print(
                         "\n \n ######################## \n",
@@ -164,16 +164,16 @@ class CPPLAlgo(CPPLConfiguration):
         )
 
         self.base.theta_hat = (
-                self.base.theta_hat
-                + self.base.gamma
-                * self.base.time_step ** (-self.base.alpha)
-                * self.base.grad
+            self.base.theta_hat
+            + self.base.gamma
+            * self.base.time_step ** (-self.base.alpha)
+            * self.base.grad
         )
         self.base.theta_hat[self.base.theta_hat < 0] = 0
         self.base.theta_hat[self.base.theta_hat > 0] = 1
 
         # Update theta_bar
         self.base.theta_bar = (
-                (self.base.time_step - 1) * self.base.theta_bar / self.base.time_step
-                + self.base.theta_hat / self.base.time_step
+            (self.base.time_step - 1) * self.base.theta_bar / self.base.time_step
+            + self.base.theta_hat / self.base.time_step
         )

@@ -13,7 +13,61 @@ from tournament_classes import run_solver
 
 
 class Tournament:
-    """Tournament class for initialiting, runnning, watching and closing the parallel processes."""
+    """Tournament class for initialiting, runnning, watching and closing the parallel processes.
+    Parameters
+    ----------
+    cppl_base : CPPLBase
+        Class object for the Base CPPL class.
+    filepath : str
+        Path of the problem instance to be solved by the solver.
+    contender_list : List
+        List of various contender or arms, each having different values of the parameters used by the
+        solver to solve the problem instance.
+    logger_name : str, default={Class name}
+        Name of the logger.
+    logger_level : int, default=logging.INFO
+        Level of the logger.
+
+    Attributes
+    ----------
+    base : CPPLBase
+        Base class object.
+    subset_size : int
+        Size of subset of contender or arms. Equal to number of CPU processors in the system.
+    solver : str
+        Solver used to solve the instances.
+    timeout : int
+        The maximum time the solver can take to solve the instance problem. Once timeout is reached, the process will be terminated.
+    solver_parameter : dict
+        The parameter set used by the solver.
+    pool : dict
+        The contender or arms pool.
+    baseline: bool
+        Set to true if only default parameterization of the solver needs to be run.
+    multiprocessing_event : multiprocessing.Event
+        An asyncio event object can be used to notify multiple asyncio tasks that some event has happened.
+    event : List[int]
+        A shared list object of the events in the tournament.
+    winner : List[int]
+        A shared list object of the winner in the tournament. It contains only a single element which is the winner among the arms in the subset participating in the tournament.
+    process_results : List[int]
+        A shared list object of the process's results in the tournament.
+    interim : List[int]
+        A shared list object of the interim outputs of a process based on the solver in the tournament.
+    new_best_time : List[int]
+        A shared list object of the new best time of the winner after each round of the tournament.
+    process_ids : List[int]
+        A shared list object of the process ids in the tournament.
+    substart_start_time : List[int]
+        A shared list object of the start time of each arm in the subset.
+    process : List[str]
+        A list of process names in the tournament.
+    interim_results : List[int]
+        A list of all the interim results of the solvers in the tournament.
+    start_time : float
+        The start time of the tournament.
+    """
+
     def __init__(
         self,
         cppl_base: CPPLBase,
@@ -22,61 +76,7 @@ class Tournament:
         logger_name="Tournament",
         logger_level=logging.INFO,
     ) -> None:
-        """
-
-        Parameters
-        ----------
-        cppl_base : CPPLBase
-            Class object for the Base CPPL class.
-        filepath : str
-            Path of the problem instance to be solved by the solver.
-        contender_list : List
-            List of various contender or arms, each having different values of the parameters used by the
-            solver to solve the problem instance.
-        logger_name : str, default={Class name}
-            Name of the logger.
-        logger_level : int, default=logging.INFO
-            Level of the logger.
-
-        Attributes
-        ----------
-        base : CPPLBase
-            Base class object.
-        subset_size : int
-            Size of subset of contender or arms. Equal to number of CPU processors in the system.
-        solver : str
-            Solver used to solve the instances.
-        timeout : int
-            The maximum time the solver can take to solve the instance problem. Once timeout is reached, the process will be terminated.
-        solver_parameter : dict
-            The parameter set used by the solver.
-        pool : dict
-            The contender or arms pool.
-        baseline: bool
-            Set to true if only default parameterization of the solver needs to be run.
-        multiprocessing_event : multiprocessing.Event
-            An asyncio event object can be used to notify multiple asyncio tasks that some event has happened.
-        event : List[int]
-            A shared list object of the events in the tournament.
-        winner : List[int]
-            A shared list object of the winner in the tournament. It contains only a single element which is the winner among the arms in the subset participating in the tournament.
-        process_results : List[int]
-            A shared list object of the process's results in the tournament.
-        interim : List[int]
-            A shared list object of the interim outputs of a process based on the solver in the tournament.
-        new_best_time : List[int]
-            A shared list object of the new best time of the winner after each round of the tournament.
-        process_ids : List[int]
-            A shared list object of the process ids in the tournament.
-        substart_start_time : List[int]
-            A shared list object of the start time of each arm in the subset.
-        process : List[str]
-            A list of process names in the tournament.
-        interim_results : List[int]
-            A list of all the interim results of the solvers in the tournament.
-        start_time : float
-            The start time of the tournament.
-        """
+        
         self.base = cppl_base
         self.filename = filepath
         self.contender_list = contender_list
@@ -165,7 +165,7 @@ class Tournament:
             return ""
 
     def start_run(self, core: int, contender_parameter_set: List[str]) -> None:
-        """Start running each process in the tournament. 
+        """Start running each process in the tournament.
 
         Each process represents each arm in the subset from the pool.
 

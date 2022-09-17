@@ -13,8 +13,7 @@ def _main():
         algorithm.__name__: algorithm for algorithm in regret_minimizing_algorithm
     }
     preselection_algorithm_choices = " ".join(preselection_algorithm.keys())
-    
-    
+
     ################## CPPL Arguments ##################
     parser.add_argument(
         "-d",
@@ -171,7 +170,7 @@ def _main():
         default=False,
         help="""Set to true if only default parameterization should run""",
     )
-    
+
     ################## Preselection Arguments ##################
     parser.add_argument(
         "-a",
@@ -179,11 +178,13 @@ def _main():
         metavar="ClassName",
         default=preselection_algorithm.keys(),
         help=f"Algorithm for selecting the optimal interim subset. (default: {preselection_algorithm_choices})",
-        choices=preselection_algorithm.keys()
+        choices=preselection_algorithm.keys(),
     )
-    
+
     args, unknown = parser.parse_known_args()
-    cppl_run = CPPLAlgo(args=args)  # TODO add an experiment script for running CPPL with different reselection bandits
+    cppl_run = CPPLAlgo(
+        args=args
+    )  # TODO add an experiment script for running CPPL with different reselection bandits
     cppl_run.run()
 
 

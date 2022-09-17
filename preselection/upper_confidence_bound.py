@@ -5,18 +5,46 @@ from utils.utility_functions import hessian
 
 
 class UCB:
-    """The Upper Confidence Bound algorithm with Context."""
+    """The Upper Confidence Bound algorithm with Context.
+    
+    Parameters
+    ----------
+    cppl_base_object : CPPLBase
+        CPPL base class object.
+    context_matrix : np.ndarray
+        A context matrix where each element is a context vector for an arm. Each vector encodes featres of the context in which an arm must be chosen.
+    degree_of_freedom : int
+        It is defined as the dimension of the joint feature map vector on the context features.
+    n_arms : int
+        Total number of contenders in the pool.
+    v_hat : np.ndarray
+        Estimated contextualized utility parameters matrix. Each row represent each arm or contender in the pool.
+    
+    Attributes
+    ----------
+    subset_size : int
+        The size of the subset of arms or contenders from the pool.
+    gradient : np.ndarray
+        A numpy array of size 
+    grad_op_sum : np.ndarray
+    hess_sum : np.ndarray
+    omega : float
+    theta_bar : np.ndarray
+    time_step : int
+    confidence_t : float
+    initial_step : bool
+    """
+
     def __init__(
         self,
         cppl_base_object: CPPLBase,
         context_matrix: np.ndarray,
         degree_of_freedom: int,  # degree of freedom (len of theta_bar)
         n_arms: int,  # Number of parameters
-        v_hat: float,  # estimated unknown contextualized utility parameter
-    ):
+        v_hat: np.ndarray,  # mean observed rewards
+    ) -> None:
         
         self.base = cppl_base_object
-        self.S_t = self.base.S_t
         self.context_matrix = context_matrix
         self.degree_of_freedom = degree_of_freedom
         self.n_arms = n_arms
@@ -50,7 +78,11 @@ class UCB:
             self.S_t = self.get_best_subset()
         else:
             self.confidence_t = np.zero(self.n_arms)
-            hess = hessian(theta=self.theta_bar, subset_arms=self.S_t, context_matrix=self.context_matrix)
+            hess = hessian(
+                theta=self.theta_bar,
+                subset_arms=self.S_t,
+                context_matrix=self.context_matrix,
+            )
             self.hess_sum += hess
             self.grad_op_sum += np.outer(self.gradient, self.gradient)
 

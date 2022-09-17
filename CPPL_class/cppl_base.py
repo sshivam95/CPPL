@@ -14,7 +14,12 @@ from CPPL_class.cppl_utils import CPPLUtils
 from utils import file_logging, set_param, random_genes
 from utils.constants import Constants
 from utils.log_params_utils import log_space_convert
-from utils.utility_functions import json_validation, set_genes, get_problem_instance_list, join_feature_map
+from utils.utility_functions import (
+    json_validation,
+    set_genes,
+    get_problem_instance_list,
+    join_feature_map,
+)
 
 
 class CPPLBase:
@@ -27,10 +32,10 @@ class CPPLBase:
     """
 
     def __init__(
-            self,
-            args,
-            logger_name="CPPLBase",
-            logger_level=logging.INFO,
+        self,
+        args,
+        logger_name="CPPLBase",
+        logger_level=logging.INFO,
     ):
         self.args = args
         self.subset_size = (
@@ -172,7 +177,7 @@ class CPPLBase:
         if self.args.train_number is not None:
             self.training = True
             for self.root, self.training_directory, self.training_file in sorted(
-                    os.walk(self.directory)
+                os.walk(self.directory)
             ):
                 continue
         else:
@@ -192,8 +197,8 @@ class CPPLBase:
         param_names = list(parameters.keys())
 
         with open(
-                f"{Constants.PARAMS_JSON_FOLDER.value}/{Constants.PARAM_SCHEMA_JSON_FILE.value}",
-                "r",
+            f"{Constants.PARAMS_JSON_FOLDER.value}/{Constants.PARAM_SCHEMA_JSON_FILE.value}",
+            "r",
         ) as file:
             schema = file.read()
         schema_meta = json.loads(schema)
@@ -281,14 +286,14 @@ class CPPLBase:
     def _init_pca_features(self):
         # read features
         if os.path.isfile(
-                "Instance_Features/training_features_" + str(self.directory)[2:-1] + ".csv"
+            "Instance_Features/training_features_" + str(self.directory)[2:-1] + ".csv"
         ):
             pass
         else:
             print(
                 "\n\nThere needs to be a file with training instance features "
                 "named << training_features_" + str(self.directory)[2:-1] + ".csv >> in"
-                                                                            " the directory Instance_Features\n\n"
+                " the directory Instance_Features\n\n"
             )
             sys.exit(0)
 
@@ -310,7 +315,7 @@ class CPPLBase:
         features = []
         train_list = []
         with open(
-                f"Instance_Features/training_features_{self.directory}.csv", "r"
+            f"Instance_Features/training_features_{self.directory}.csv", "r"
         ) as csvFile:
             reader = csv.reader(csvFile)
             next(reader)
@@ -359,18 +364,18 @@ class CPPLBase:
         candidates_pool_dimensions = 4  # by default # Corresponds to n different parameterization (Pool of candidates)
         if self.joint_featured_map_mode == "concatenation":
             candidates_pool_dimensions = (
-                    self.n_pca_features_components + self.n_pca_params_components
+                self.n_pca_features_components + self.n_pca_params_components
             )
         elif self.joint_featured_map_mode == "kronecker":
             candidates_pool_dimensions = (
-                    self.n_pca_features_components * self.n_pca_params_components
+                self.n_pca_features_components * self.n_pca_params_components
             )
         elif self.joint_featured_map_mode == "polynomial":
             for index_pca_params in range(
-                    (self.n_pca_features_components + self.n_pca_params_components) - 2
+                (self.n_pca_features_components + self.n_pca_params_components) - 2
             ):
                 candidates_pool_dimensions = (
-                        candidates_pool_dimensions + 3 + index_pca_params
+                    candidates_pool_dimensions + 3 + index_pca_params
                 )
 
         return candidates_pool_dimensions
@@ -393,9 +398,7 @@ class CPPLBase:
         params_transformed = self.pca_obj_params.transform(params)
         # construct X_t (context specific (instance information) feature matrix ( and parameterization information))
         n_arms = params.shape[0]  # Distinct Parameters or available arms
-        degree_of_freedom = len(
-            self.theta_bar
-        )  # Distinct Parameters or available arms
+        degree_of_freedom = len(self.theta_bar)  # Distinct Parameters or available arms
         context_matrix = np.zeros((n_arms, degree_of_freedom))
         for i in range(n_arms):
             next_context_vector = join_feature_map(

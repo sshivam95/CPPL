@@ -13,10 +13,10 @@ from utils.utility_functions import set_genes, join_feature_map
 
 class CPPLConfiguration:
     def __int__(
-            self,
-            args,
-            logger_name="CPPLConfiguration",
-            logger_level=logging.INFO,
+        self,
+        args,
+        logger_name="CPPLConfiguration",
+        logger_level=logging.INFO,
     ):
         self.base = CPPLBase(args=args)
         self.logger = logging.getLogger(logger_name)
@@ -79,10 +79,10 @@ class CPPLConfiguration:
             for arm1 in range(self.n_arms):
                 for arm2 in range(self.n_arms):
                     if (
-                            arm2 != arm1
-                            and v_hat[arm2] - confidence_t[arm2]
-                            >= v_hat[arm1] + confidence_t[arm1]
-                            and (not arm1 in self.discard)
+                        arm2 != arm1
+                        and v_hat[arm2] - confidence_t[arm2]
+                        >= v_hat[arm1] + confidence_t[arm1]
+                        and (not arm1 in self.discard)
                     ):
                         self.discard.append(arm1)
                         break
@@ -306,7 +306,7 @@ class CPPLConfiguration:
             filename=self.filename
         )
 
-        S_t = (-v_hat).argsort()[0: self.base.subset_size]
+        S_t = (-v_hat).argsort()[0 : self.base.subset_size]
 
         for index in range(self.base.subset_size):
             contender_list.append("contender_" + str(S_t[index]))
@@ -316,5 +316,5 @@ class CPPLConfiguration:
     def update_logs(self, contender_index, genes):
         self.base.contender_pool[
             "contender_" + str(contender_index)
-            ] = genes  # TODO: change to local pool after clarification
+        ] = genes  # TODO: change to local pool after clarification
         self.base.tracking_pool.info(self.base.contender_pool)

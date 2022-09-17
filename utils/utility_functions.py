@@ -10,10 +10,10 @@ from utils.constants import Constants
 
 
 def gradient(
-        theta: np.ndarray,
-        winner_arm: int,
-        subset_arms: np.ndarray,
-        context_matrix: np.ndarray,
+    theta: np.ndarray,
+    winner_arm: int,
+    subset_arms: np.ndarray,
+    context_matrix: np.ndarray,
 ) -> float:
     """
     Calculate the gradient of the log-likelihood function in the partial winner feedback scenario.
@@ -40,14 +40,14 @@ def gradient(
     for arm in subset_arms:
         denominator = denominator + np.exp(np.dot(theta, context_matrix[arm, :]))
         num = num + (
-                context_matrix[arm, :] * np.exp(np.dot(theta, context_matrix[arm, :]))
+            context_matrix[arm, :] * np.exp(np.dot(theta, context_matrix[arm, :]))
         )
     res = context_matrix[winner_arm, :] - (num / denominator)
     return res
 
 
 def hessian(
-        theta: np.ndarray, subset_arms: np.ndarray, context_matrix: np.ndarray
+    theta: np.ndarray, subset_arms: np.ndarray, context_matrix: np.ndarray
 ) -> np.ndarray:
     """
     Calculate the hessian matrix of the log-likelihood function in the partial winner feedback scenario.
@@ -71,20 +71,20 @@ def hessian(
     t_1 = np.zeros(dimension)
     for arm in subset_arms:
         t_1 = t_1 + (
-                context_matrix[arm, :] * np.exp(np.dot(theta, context_matrix[arm, :]))
+            context_matrix[arm, :] * np.exp(np.dot(theta, context_matrix[arm, :]))
         )
     num_1 = np.outer(t_1, t_1)
     denominator_1 = 0
     for arm in subset_arms:
         denominator_1 = (
-                denominator_1 + np.exp(np.dot(theta, context_matrix[arm, :])) ** 2
+            denominator_1 + np.exp(np.dot(theta, context_matrix[arm, :])) ** 2
         )
     s_1 = num_1 / denominator_1
     num_2 = 0
     for j in subset_arms:
         num_2 = num_2 + (
-                np.exp(np.dot(theta, context_matrix[j, :]))
-                * np.outer(context_matrix[j, :], context_matrix[j, :])
+            np.exp(np.dot(theta, context_matrix[j, :]))
+            * np.outer(context_matrix[j, :], context_matrix[j, :])
         )
     denominator_2 = 0
     for arm in subset_arms:
@@ -206,7 +206,7 @@ def get_solver_params(solver_parameters: dict, solver: str) -> Tuple[List, dict]
         json_file_name = "params_" + str(solver)
 
         with open(
-                f"{Constants.PARAMS_JSON_FOLDER.value}/{json_file_name}.json", "r"
+            f"{Constants.PARAMS_JSON_FOLDER.value}/{json_file_name}.json", "r"
         ) as file:
             data = file.read()
 

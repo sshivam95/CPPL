@@ -3,9 +3,7 @@ import subprocess
 from typing import List, Tuple, Union, Any, Iterable
 
 
-def start(
-    params: List, time_limit: int, filename: str, solver: str
-) -> Popen:
+def start(params: List, time_limit: int, filename: str, solver: str) -> Popen:
     """
     Sub-routine of sub-process to solve problem instances using different solvers.
 
