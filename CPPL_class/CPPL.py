@@ -254,7 +254,7 @@ class CPPLBase:
                         contender_index=contender_index,
                         contender_pool=self.contender_pool[contender_index],
                         solver_parameters=self.solver_parameters,
-                    )
+                    )  # Create the contenders pool in a directory
         elif self.args.data == "y":
             pool_file = f"Pool_{self.args.solver}.json"
             if self.args.exp == "y":
