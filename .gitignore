@@ -141,3 +141,4 @@ dmypy.json
 /contender_pool.json
 /.vscode/launch.json
 .idea/CPPL.iml
+.idea/codeStyles/codeStyleConfig.xml
