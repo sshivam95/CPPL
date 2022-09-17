@@ -1,7 +1,7 @@
 """Random Genes Utils."""
 import math
 import random
-from typing import Union
+from typing import List, Tuple, Union
 
 import numpy as np
 from numpy.random import choice
@@ -9,7 +9,7 @@ from numpy.random import choice
 from utils.utility_functions import get_solver_params
 
 
-def get_all_min_and_max(solver_parameters: dict) -> (list[int], list[int]):
+def get_all_min_and_max(solver_parameters: dict) -> Union[List[int], List[int]]:
     """
     Get the minimum and maximum values from the parameters of the solver.
 
@@ -20,9 +20,9 @@ def get_all_min_and_max(solver_parameters: dict) -> (list[int], list[int]):
 
     Returns
     -------
-    all_min: list[int]
+    all_min: List[int]
         All minimum values from the file.
-    all_max: list[int]
+    all_max: List[int]
         All maximum values from the file.
     """
     params = solver_parameters
@@ -59,7 +59,7 @@ def get_all_min_and_max(solver_parameters: dict) -> (list[int], list[int]):
 
 
 # pylint: disable=too-many-nested-blocks,too-many-locals,too-many-branches,too-many-statements
-def get_genes_set(solver: str, solver_parameters: dict = None) -> list[int]:
+def get_genes_set(solver: str, solver_parameters: dict = None) -> List[int]:
     """
     Return the gene set for a particular solver.
 
@@ -73,7 +73,7 @@ def get_genes_set(solver: str, solver_parameters: dict = None) -> list[int]:
 
     Returns
     -------
-    genes: list[int]
+    genes: List[int]
         The generated genes set.
     """
     param_names, params = get_solver_params(
@@ -248,10 +248,10 @@ def get_log_distribution_params(
     parameter_index: int,
     max_val: int,
     min_val: int,
-    param_names: list,
+    param_names: List,
     params: dict,
     splittable: bool,
-) -> (float, bool, float, bool, bool, float, float, float, list[float]):
+) -> Tuple[float, bool, float, bool, bool, float, float, float, List[float]]:
     """
     Return the parameters in the logarithm space.
 
@@ -265,7 +265,7 @@ def get_log_distribution_params(
         Value of the `maxval` property of the solver's parameter at parameter index.
     min_val : int
         Value of the `minval` property of the solver's parameter at parameter index.
-    param_names : list
+    param_names : List
         Parameter name of the solver's parameter at parameter index.
     params : dict
         Solver's parameter set.
@@ -293,7 +293,7 @@ def get_log_distribution_params(
         solver parameter.
     probability_zero: float
         Value of the `probabilityzero` property (if available else 0.1) of the solver parameter.
-    weights: list[float]
+    weights: List[float]
         Probability weights of the parameter at the given index.
     """
     log_max_val = math.log(max_val)
@@ -393,8 +393,8 @@ def get_log_distribution_params(
 
 
 def split_by_default(
-    index: int, param_names: list, params: list
-) -> (int, int, int, bool):
+    index: int, param_names: List, params: List
+) -> Tuple[int, int, int, bool]:
     """
     Check if the solver parameters have splittable by default property or not.
 
@@ -402,9 +402,9 @@ def split_by_default(
     ----------
     index : int
         Index of the solver parameter.
-    param_names : list
+    param_names : List
         Name of the solver parameter.
-    params : list
+    params : List
         Parameter set of the solver.
 
     Returns
@@ -431,19 +431,19 @@ def split_by_default(
 
 
 def get_one_hot_decoded_param_set(
-    genes: Union[list, np.ndarray],
+    genes: Union[List, np.ndarray],
     solver: str,
     param_value_dict: dict = None,
     solver_parameters: dict = None,
     reverse: bool = False,
-) -> list:
+) -> List:
     """
     Decoding the parameters and returning new parameters or parameters like a one-hot vector back to solver specific
     representation based on param_solver.json
 
     Parameters
     ----------
-    genes : Union[list, np.ndarray]
+    genes : Union[List, np.ndarray]
         Genes or parameters (can be random) to be added in the paarameter pool
     solver : str
         name of the solver used to solve problem instances.
@@ -456,7 +456,7 @@ def get_one_hot_decoded_param_set(
 
     Returns
     -------
-    list
+    List
         New or old set or parameters.
     """
     param_names, params = get_solver_params(
@@ -569,8 +569,8 @@ def get_one_hot_decoded_param_set(
 
 
 def get_params_string_from_numeric_params(
-    genes: np.ndarry, solver: str, solver_parameters: dict = None
-) -> list[str]:
+    genes: np.ndarray, solver: str, solver_parameters: dict = None
+) -> List[str]:
     """
     Transform string categorical back to string based on solver parameters file `params_{solver}.json.`
 
@@ -585,7 +585,7 @@ def get_params_string_from_numeric_params(
 
     Returns
     -------
-    genes: list[str]
+    genes: List[str]
         List of parameters in form of string if the solver parameter type is categorical.
     """
     param_names, params = get_solver_params(

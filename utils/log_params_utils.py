@@ -1,4 +1,5 @@
 import math
+from typing import List, Tuple
 
 import numpy as np
 
@@ -98,11 +99,11 @@ def log_space_convert(
 
 def update_max_min_values(
     limit_number: int,
-    max_val_indices: list,
-    min_val_indices: list,
-    param_names: list,
+    max_val_indices: List,
+    min_val_indices: List,
+    param_names: List,
     params: dict,
-) -> (list, list):
+) -> Tuple[List, List]:
 
     """
     Update the minimum and maximum values based on the parameters of the solver.
@@ -111,20 +112,20 @@ def update_max_min_values(
     ----------
     limit_number : int
         Upper and lower limit of the minimum and maximum values from the solver parameter set.
-    max_val_indices : list
+    max_val_indices : List
         List of indices of the maximum values in the parameter set of the solver.
-    min_val_indices : list
+    min_val_indices : List
         List of indices of the minimum values in the parameter set of the solver.
-    param_names : list
+    param_names : List
         List of keys in the parameter set of the solver.
     params : dict
         Parameter set of the solver.
 
     Returns
     -------
-    max_val_indices : list
+    max_val_indices : List
         Updated list of indices of the maximum values in the parameter set of the solver.
-    min_val_indices : list
+    min_val_indices : List
         Updated list of indices of the minimum values in the parameter set of the solver.
     """
     for i, _ in enumerate(param_names):
@@ -145,7 +146,7 @@ def update_max_min_values(
     return max_val_indices, min_val_indices
 
 
-def _params_init(solver_parameters: dict) -> (list, list, list, dict, list):
+def _params_init(solver_parameters: dict) -> Tuple[List, List, List, dict, List]:
     """
     Initialize parameters attributes.
 
@@ -156,15 +157,15 @@ def _params_init(solver_parameters: dict) -> (list, list, list, dict, list):
 
     Returns
     -------
-    max_val_indices: list
+    max_val_indices: List
         List of indices of the maximum values in the parameter set of the solver.
-    min_val_indices: list
+    min_val_indices: List
         List of indices of the minimum values in the parameter set of the solver.
-    param_names: list
+    param_names: List
         List of keys in the parameter set of the solver.
     params: dict
         Parameter set of the solver.
-    to_delete: list
+    to_delete: List
         Parameters to be deleted.
     """
     param_names = list(solver_parameters.keys())

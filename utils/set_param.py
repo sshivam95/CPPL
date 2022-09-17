@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 
 
 def set_contender_params(
@@ -6,7 +6,7 @@ def set_contender_params(
     contender_pool: dict,
     solver_parameters: dict,
     return_it: bool = False,
-) -> Optional[list]:
+) -> Optional[List]:
     """
     Set the parameters for the contenders, i.e., arms.
 
@@ -23,7 +23,7 @@ def set_contender_params(
 
     Returns
     -------
-    parameter_set: Optional[list]
+    parameter_set: Optional[List]
         The parameter set of the contender ot arm.
     """
     param_names = list(solver_parameters.keys())

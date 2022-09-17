@@ -1,5 +1,6 @@
 import json
 import os
+from typing import List, Tuple
 
 import jsonschema
 import numpy as np
@@ -119,7 +120,7 @@ def join_feature_map(x: np.ndarray, y: np.ndarray, mode: str) -> np.ndarray:
         return poly.fit_transform(np.concatenate((x, y), axis=0).reshape(1, -1))
 
 
-def get_problem_instance_list(sorted_directory: dict) -> list:
+def get_problem_instance_list(sorted_directory: dict) -> List:
     """
     Returns clean problem instances as a list.
 
@@ -130,7 +131,7 @@ def get_problem_instance_list(sorted_directory: dict) -> list:
 
     Returns
     -------
-    list
+    List
         clean_problem_instance_list: A list containing all the names of the problem instances to be solved.
     """
     clean_problem_instance_list = ["" for i, _ in enumerate(sorted_directory)]
@@ -173,7 +174,7 @@ def set_genes(solver_parameters: dict) -> list:
 
     Returns
     -------
-    genes: list
+    genes: List
         List of parameters that are needed.
     """
     param_names = list(solver_parameters.keys())
@@ -183,7 +184,7 @@ def set_genes(solver_parameters: dict) -> list:
     return genes
 
 
-def get_solver_params(solver_parameters: dict, solver: str) -> (list, dict):
+def get_solver_params(solver_parameters: dict, solver: str) -> Tuple[List, dict]:
     """
     Return the parameter keys and values from the solver's parameter schema.
 
@@ -196,7 +197,7 @@ def get_solver_params(solver_parameters: dict, solver: str) -> (list, dict):
 
     Returns
     -------
-    param_names: list
+    param_names: List
         List of solver's parameters names.
     params: dict
         Dictionary data of the solver's parameters.

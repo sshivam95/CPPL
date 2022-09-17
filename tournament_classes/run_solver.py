@@ -1,17 +1,17 @@
 from subprocess import Popen, PIPE
 import subprocess
-from typing import Union, Any, Iterable
+from typing import List, Tuple, Union, Any, Iterable
 
 
 def start(
-    params: list, time_limit: int, filename: str, solver: str
+    params: List, time_limit: int, filename: str, solver: str
 ) -> Union[Popen[bytes], Popen]:
     """
     Sub-routine of sub-process to solve problem instances using different solvers.
 
     Parameters
     ----------
-    params : list
+    params : List
         Set of different combination of parameters to be used to solve the problem instances by the solver.
     time_limit : int
         Maximum time limit a solver can run, after this threshold the execution will stop.
@@ -78,7 +78,7 @@ def start(
         return proc
 
 
-def check_output(line: str, interim: list, solver: str) -> Union[list, str]:
+def check_output(line: str, interim: List, solver: str) -> Union[List, str]:
     """
     Check the output of the solver on the problem instance.
 
@@ -86,14 +86,14 @@ def check_output(line: str, interim: list, solver: str) -> Union[list, str]:
     ----------
     line : str
         Each line in the problem instance file.
-    interim : list
+    interim : List
         Interim list of the threads.
     solver : str
         Solver's name used to solve the problem instances.
 
     Returns
     -------
-    Union[list, str]
+    Union[List, str]
         The interim output of the subprocess.
     """
     if solver == "cadical":
@@ -172,12 +172,12 @@ def check_output(line: str, interim: list, solver: str) -> Union[list, str]:
 
 def check_if_solved(
     line: str,
-    results: list[int],
+    results: List[int],
     proc: Union[Popen[bytes], Popen],
-    event: list[int],
+    event: List[int],
     non_nlock_read: Any,
     solver: str,
-) -> tuple[Iterable, Iterable, Any]:
+) -> Tuple[Iterable, Iterable, Any]:
     """
     Check if the solver has solved the problem instance. If yes, return the event and the result.
 
@@ -185,11 +185,11 @@ def check_if_solved(
     ----------
     line : str
         Each line in the problem instance file.
-    results : list[int]
+    results : List[int]
         Current result of the process.
-    proc : Union[list, str]
+    proc : Union[List, str]
         The subprocess object.
-    event : list[int]
+    event : List[int]
         The event in the running thread.
     non_nlock_read : Any
         A method to check the output of the process.
@@ -199,9 +199,9 @@ def check_if_solved(
     Returns
     -------
     If the instance problem is solved then,
-        results : list
+        results : List
             The results of the problem instance.
-        event : list
+        event : List
             The event list including the one which finished first.
     else,
          str
