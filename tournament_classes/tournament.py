@@ -23,10 +23,10 @@ class Tournament:
     contender_list : List
         List of various contender or arms, each having different values of the parameters used by the
         solver to solve the problem instance.
-    logger_name : str, default={Class name}
-        Name of the logger.
-    logger_level : int, default=logging.INFO
-        Level of the logger.
+    logger_name : str
+        Name of the logger, by default "Tournament"
+    logger_level : int
+        Level of the logger, by default logging.INFO
 
     Attributes
     ----------
@@ -38,9 +38,9 @@ class Tournament:
         Solver used to solve the instances.
     timeout : int
         The maximum time the solver can take to solve the instance problem. Once timeout is reached, the process will be terminated.
-    solver_parameter : dict
+    solver_parameter : Dict
         The parameter set used by the solver.
-    pool : dict
+    pool : Dict
         The contender or arms pool.
     baseline: bool
         Set to true if only default parameterization of the solver needs to be run.

@@ -7,7 +7,7 @@ import multiprocessing as mp
 import os
 import pathlib
 import sys
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 from sklearn.decomposition import PCA
@@ -110,9 +110,9 @@ class CPPLBase:
 
         # theta_hat = np.random.rand(candidates_pool_dimensions)
         self.theta_hat = np.zeros(
-            candidates_pool_dimensions
+            candidates_pool_dimensions  # Estimated score/weight parameter
         )  # Line 2 CPPL (random Parameter Vector)
-        self.theta_bar = self.theta_hat  # Line 3 CPPl
+        self.theta_bar = self.theta_hat  # Line 3 CPPl, mean weight parameter
         self.grad_op_sum = np.zeros(
             (candidates_pool_dimensions, candidates_pool_dimensions)
         )
@@ -200,12 +200,12 @@ class CPPLBase:
         else:
             self.rounds_to_train = 0
 
-    def _get_solver_parameters(self) -> dict:
+    def _get_solver_parameters(self) -> Dict:
         """_summary_
 
         Returns
         -------
-        dict
+        Dict
             _description_
         """
         json_file_name = "params_" + str(self.args.solver)
@@ -367,19 +367,19 @@ class CPPLBase:
 
         return np.asarray(features), train_list
 
-    def _init_pca_params(self) -> Tuple[np.ndarray, dict, MinMaxScaler, int, PCA]:
+    def _init_pca_params(self) -> Tuple[np.ndarray, Dict, MinMaxScaler, int, PCA]:
         """_summary_
 
         Returns
         -------
-        Tuple[np.ndarray, dict, MinMaxScaler, int, PCA]
+        Tuple[np.ndarray, Dict, MinMaxScaler, int, PCA]
             _description_
         """
         params, parameter_value_dict = self.cppl_utils.read_parameters()
         params = np.asarray(params)
         all_min, all_max = random_genes.get_all_min_and_max(self.solver_parameters)
-        all_min, _ = self.cppl_utils.read_parameters(contender=all_min)
-        all_max, _ = self.cppl_utils.read_parameters(contender=all_max)
+        all_min, _ = self.cppl_utils.read_parameters(contender_genes=all_min)
+        all_max, _ = self.cppl_utils.read_parameters(contender_genes=all_max)
         params = np.append(params, [all_min, all_max], axis=0)
         params = log_space_convert(
             limit_number=float(self.args.paramimit),

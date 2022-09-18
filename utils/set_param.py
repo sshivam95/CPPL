@@ -1,10 +1,10 @@
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 
 def set_contender_params(
     contender_index: int,
-    contender_pool: dict,
-    solver_parameters: dict,
+    contender_pool: Dict,
+    solver_parameters: Dict,
     return_it: bool = False,
 ) -> Optional[List]:
     """
@@ -14,9 +14,9 @@ def set_contender_params(
     ----------
     contender_index : int
         Index of the contender for parameterization.
-    contender_pool : dict
+    contender_pool : Dict
         The pool of contenders participating in the tournament.
-    solver_parameters : dict
+    solver_parameters : Dict
         The parameter set used by the solver.
     return_it : bool, default=False
         Boolean whether to return the parameter set.

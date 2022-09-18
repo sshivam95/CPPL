@@ -1,6 +1,6 @@
 import json
 import os
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import jsonschema
 import numpy as np
@@ -21,7 +21,7 @@ def gradient(
     Parameters
     ----------
     theta : np.ndarray
-        Score parameter of each arm in the contender pool.
+        Score or weight parameter of each arm in the contender pool. Theta is use to calculate the log-linear estimated skill parametet v_hat.
     winner_arm : int
         Winner arm (parameter) in the subset.
     subset_arms : np.ndarray
@@ -55,7 +55,7 @@ def hessian(
     Parameters
     ----------
     theta : np.ndarray
-        Score parameter matrix where each row represents each arm in the contender pool.
+        Score parameter matrix where each row represents each arm in the contender pool. Theta is use to calculate the log-linear estimated skill parametet v_hat.
     subset_arms : np.ndarray
         A subset of arms from the contender pool for solving the instances.
     context_matrix : np.ndarray
@@ -120,13 +120,13 @@ def join_feature_map(x: np.ndarray, y: np.ndarray, mode: str) -> np.ndarray:
         return poly.fit_transform(np.concatenate((x, y), axis=0).reshape(1, -1))
 
 
-def get_problem_instance_list(sorted_directory: dict) -> List:
+def get_problem_instance_list(sorted_directory: Dict) -> List:
     """
     Returns clean problem instances as a list.
 
     Parameters
     ----------
-    sorted_directory : dict
+    sorted_directory : Dict
         A sorted dictionary contains the names of all the problem instances.
 
     Returns
@@ -140,15 +140,15 @@ def get_problem_instance_list(sorted_directory: dict) -> List:
     return clean_problem_instance_list
 
 
-def json_validation(param: dict, schema: dict) -> bool:
+def json_validation(param: Dict, schema: Dict) -> bool:
     """
     Validate the json parameters with the schema mentioned.
 
     Parameters
     ----------
-    param : dict
+    param : Dict
         The json type parameters of the solver.
-    schema : dict
+    schema : Dict
         The meta schema of the json file.
 
     Returns
@@ -163,13 +163,13 @@ def json_validation(param: dict, schema: dict) -> bool:
     return True
 
 
-def set_genes(solver_parameters: dict) -> List:
+def set_genes(solver_parameters: Dict) -> List:
     """
     Return genes based on solver's parameters.
 
     Parameters
     ----------
-    solver_parameters : dict
+    solver_parameters : Dict
         The parameters of the solver used to solve the instances.
 
     Returns
@@ -184,13 +184,13 @@ def set_genes(solver_parameters: dict) -> List:
     return genes
 
 
-def get_solver_params(solver_parameters: dict, solver: str) -> Tuple[List, dict]:
+def get_solver_params(solver_parameters: Dict, solver: str) -> Tuple[List, Dict]:
     """
     Return the parameter keys and values from the solver's parameter schema.
 
     Parameters
     ----------
-    solver_parameters : dict
+    solver_parameters : Dict
         Parameters of the solver.
     solver : str
         Solver used to solve the instances.
@@ -199,7 +199,7 @@ def get_solver_params(solver_parameters: dict, solver: str) -> Tuple[List, dict]
     -------
     param_names: List
         List of solver's parameters names.
-    params: dict
+    params: Dict
         Dictionary data of the solver's parameters.
     """
     if solver_parameters is None:

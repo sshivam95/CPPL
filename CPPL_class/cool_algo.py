@@ -1,4 +1,5 @@
-"""A CPPL class which represents CPPL algorithm"""
+"""An implementation of CPPL algorithm."""
+from argparse import Namespace
 import logging
 
 from CPPL_class.cppl_configuration import CPPLConfiguration
@@ -9,40 +10,61 @@ from tournament_classes.tournament import Tournament
 
 
 class CPPLAlgo(CPPLConfiguration):
-    """_summary_
+    """A CPPL class which represents the working of the CPPL algorithm.
 
     Parameters
     ----------
-    args : _type_
-        _description_
+    args : Namespace
+        The arguments of the algorithm given by user.
     logger_name : str, optional
-        _description_, by default "CPPLAlgo"
-    logger_level : _type_, optional
-        _description_, by default logging.INFO
+        Logger name, by default "CPPLAlgo"
+    logger_level : int, optional
+        Level of the logger, by default logging.INFO
 
     Attributes
     ----------
+    tournament : Tournament
+        An object of class Tournament.
+    contender_list : List[str]
+        List of contenders from the pool of contenders after preselection. If the winner is known with the highest upper bounds on the latent utility,
+        the list contains the winner arm else the list is generated with arms having highest estimated latent utility. Note: this changes based on different
+        preselection algorithms.
+    context_matrix : np.ndarray
+        A context matrix where each element is associated with one of the different arms and contains
+        the properties of the arm itself as well as the context in which the arm needs to be chosen.
+    current_contender_names : List[str]
+        List of the contenders in the current time step.
+    current_pool : List[int]
+        The contenders pool after the update.
+    solver : str
+        Solver used to solve the instances.
+    winners_list : List[int]
+        A list of all winners over the time step.
     """
 
     def __init__(
         self,
-        args,
-        logger_name="CPPLAlgo",
-        logger_level=logging.INFO,
+        args: Namespace,
+        logger_name: str = "CPPLAlgo",
+        logger_level: int = logging.INFO,
     ) -> None:
         super().__init__(args=args)
-        self.tournament = None
+        self.logger = logging.getLogger(logger_name)
+        self.logger.setLevel(logger_level)
+
+        self.tournament: Tournament = None
         self.contender_list = None
         self.context_matrix = None
         self.current_contender_names = None
         self.current_pool = None
         self.solver = self.base.args.solver
-        self.logger = logging.getLogger(logger_name)
-        self.logger.setLevel(logger_level)
         self.winners_list = []
 
     def run(self) -> None:
-        """_summary_"""
+        """Run the algorithm until vompletion.
+
+        Completion is determined by whether the solver has solved all the problem instance files.
+        """
         # Read Instance file name to hand to solver
         # and check for format
         if self.solver == "cadical" or self.solver == "glucose":
@@ -75,14 +97,14 @@ class CPPLAlgo(CPPLConfiguration):
                         (
                             self.context_matrix,
                             self.contender_list,
-                            discard,
+                            discard,  # The discarded contenders.
                         ) = self._get_contender_list(filename=filename)
 
-                        self.base.S_t = []  # S_t
+                        self.base.S_t = []
                         for contender in self.contender_list:
                             self.base.S_t.append(
                                 int(contender.replace("contender_", ""))
-                            )
+                            )  # The subset of contenders after preselection.
 
                         if discard:
                             self.base.time_step = 1
@@ -140,7 +162,7 @@ class CPPLAlgo(CPPLConfiguration):
                     # Log execution times
                     self.base.tracking_times.info(self.base.instance_execution_times)
 
-                    # Log Winners for instances
+                    # Log Winners of problem instances
                     self.base.tracking_winners.info(self.winners_list)
 
                 else:
@@ -154,7 +176,7 @@ class CPPLAlgo(CPPLConfiguration):
         )
 
     def update(self) -> None:
-        """_summary_"""
+        """Update the contenders pool, winners list, gradient and mean estimated score parameters after solving a problem instance."""
         self.current_pool = []
 
         for keys in self.base.contender_pool:
@@ -180,6 +202,7 @@ class CPPLAlgo(CPPLConfiguration):
             context_matrix=self.context_matrix,
         )
 
+        # Update theta_hat
         self.base.theta_hat = (
             self.base.theta_hat
             + self.base.gamma
@@ -189,7 +212,7 @@ class CPPLAlgo(CPPLConfiguration):
         self.base.theta_hat[self.base.theta_hat < 0] = 0
         self.base.theta_hat[self.base.theta_hat > 0] = 1
 
-        # Update theta_bar
+        # Update theta_bar based on theta_hat and time step
         self.base.theta_bar = (
             (self.base.time_step - 1) * self.base.theta_bar / self.base.time_step
             + self.base.theta_hat / self.base.time_step

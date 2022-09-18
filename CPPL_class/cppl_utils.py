@@ -1,6 +1,6 @@
-"""Utilities in the CPPL algorithm."""
+"""Utility functions in the CPPL algorithm."""
 import logging
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 
@@ -8,32 +8,29 @@ import utils.utility_functions
 
 
 class CPPLUtils:
-    """_summary_
+    """A class containing utility functions used in the CPPL algorithm.
 
     Parameters
     ----------
-    pool : _type_
-        _description_
-    solver : _type_
-        _description_
-    solver_parameters : _type_
-        _description_
+    pool : Dict[str, int]
+        The pool of contenders or parameters to solve the problem instance.
+    solver : str
+        Solver used to solve the instances.
+    solver_parameters : Dict
+        The parameter set used by the solver.
     logger_name : str, optional
-        _description_, by default "CPPLUtils"
-    logger_level : _type_, optional
-        _description_, by default logging.INFO
-
-    Attributes
-    ----------
+        Name of the logger, by default "CPPLUtils"
+    logger_level : int, optional
+        Level of the logger, by default logging.INFO
     """
 
     def __init__(
         self,
-        pool,
-        solver,
-        solver_parameters,
-        logger_name="CPPLUtils",
-        logger_level=logging.INFO,
+        pool: Dict[str, int],
+        solver: str,
+        solver_parameters: Dict,
+        logger_name: str = "CPPLUtils",
+        logger_level: int = logging.INFO,
     ) -> None:
         self.logger = logging.getLogger(logger_name)
         self.logger.setLevel(logger_level)
@@ -42,29 +39,31 @@ class CPPLUtils:
         self.solver = solver
         self.solver_parameters = solver_parameters
 
-    def read_parameters(self, contender: List[int] = None) -> Tuple[np.ndarray, dict]:
-        """_summary_
+    def read_parameters(self, contender_genes: List[int] = None) -> Tuple[np.ndarray, Dict]:
+        """Return the parameter names and the actual parameters of the given contender.
 
         Parameters
         ----------
-        contender : List[int], optional
-            _description_, by default None
+        contender_genes : List[int], optional
+            The genes of the contender parameter , by default None
 
         Returns
         -------
-        Tuple[np.ndarray, dict]
-            _description_
+        parameters_name_list : np.ndarray
+            A numpy array of the prameter's property of the given solver
+        parameter_value_dict : Dict
+            A dictionary of the parameter with the key as the solver's parameter name and the value is the parameter value.
         """
         global parameter_value_dict
         parameter_names, params = utils.utility_functions.get_solver_params(
             solver_parameters=self.solver_parameters, solver=self.solver
         )
 
-        if contender is not None:
-            new_params, parameter_value_dict = self.read_param_from_dict(
-                contender=contender, parameter_names=parameter_names
+        if contender_genes is not None:
+            parameters_name_list, parameter_value_dict = self.read_param_from_dict(
+                contender_genes=contender_genes, parameter_names=parameter_names
             )
-            return np.asarray(new_params), parameter_value_dict
+            return np.asarray(parameters_name_list), parameter_value_dict
 
         else:
             if type(self.pool) != dict:
@@ -77,51 +76,53 @@ class CPPLUtils:
 
             new_params_list = []
             for new_contender in new_contender_pool:
-                new_params, parameter_value_dict = self.read_param_from_dict(
-                    contender=new_params_list[new_contender],
+                parameters_name_list, parameter_value_dict = self.read_param_from_dict(
+                    contender_genes=new_params_list[new_contender],
                     parameter_names=parameter_names,
                 )
-                new_params_list.append(new_params)
+                new_params_list.append(parameters_name_list)
             return np.asarray(new_params_list), parameter_value_dict
 
     def read_param_from_dict(
-        self, contender: List[int], parameter_names: List
-    ) -> Tuple[List[int], dict]:
-        """_summary_
+        self, contender_genes: List[int], parameter_names: List
+    ) -> Tuple[List[int], Dict]:
+        """Get the parameter set from the solver's parameter.
 
         Parameters
         ----------
         contender : List[int]
-            _description_
+            The genes of the contender parameter
         parameter_names : List
-            _description_
+            List of solver's parameters names.
 
         Returns
         -------
-        Tuple[List[int], dict]
-            _description_
+        parameters_name_list : List[int]
+            List of the property's names from the solver's parameters.
+        parameter_value_dict : Dict
+            A dictionary of the parameter with the key as the solver's parameter name and the value is the parameter value.
         """
         global index
-        next_params = contender
-        params = self.solver_parameters
+        next_params = contender_genes
+        solver_parameters = self.solver_parameters
         originals_index_to_delete = []
         one_hot_addition = []
         parameter_value_dict = {}
 
-        if len(parameter_names) == len(contender):
+        if len(parameter_names) == len(contender_genes):
             for i, _ in enumerate(parameter_names):
                 parameter_value_dict[parameter_names[i]] = next_params[i]
 
-                if params[parameter_names[i]]["paramtype"] == "categorical":
-                    if params[parameter_names[i]]["valtype"] == "int":
-                        min_value = params[parameter_names[i]]["minval"]
-                        max_value = params[parameter_names[i]]["maxval"]
+                if solver_parameters[parameter_names[i]]["paramtype"] == "categorical":
+                    if solver_parameters[parameter_names[i]]["valtype"] == "int":
+                        min_value = solver_parameters[parameter_names[i]]["minval"]
+                        max_value = solver_parameters[parameter_names[i]]["maxval"]
                         value_range = max_value - min_value + 1
                         values = [min_value + j for j in range(value_range)]
                         index = int(next_params[i]) - min_value
 
                     else:  # params[parameter_names[i]]["valtype"] == "str"
-                        values = params[parameter_names[i]]["values"]
+                        values = solver_parameters[parameter_names[i]]["values"]
 
                         if type(next_params[i]) == str:
                             index = values.index(next_params[i])
@@ -146,15 +147,15 @@ class CPPLUtils:
 
                         parameter_value_dict[parameter_names[i]] = None
 
-            new_params = []
+            parameters_name_list = []
 
             for key in parameter_value_dict:
                 if parameter_value_dict[key] is not None:
-                    new_params.append(parameter_value_dict[key])
+                    parameters_name_list.append(parameter_value_dict[key])
 
-            new_params += one_hot_addition
+            parameters_name_list += one_hot_addition
 
         else:
-            new_params = contender
+            parameters_name_list = contender_genes
 
-        return new_params, parameter_value_dict
+        return parameters_name_list, parameter_value_dict

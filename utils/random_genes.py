@@ -1,7 +1,7 @@
 """Random Genes Utils."""
 import math
 import random
-from typing import List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 from numpy.random import choice
@@ -9,13 +9,13 @@ from numpy.random import choice
 from utils.utility_functions import get_solver_params
 
 
-def get_all_min_and_max(solver_parameters: dict) -> Union[List[int], List[int]]:
+def get_all_min_and_max(solver_parameters: Dict) -> Union[List[int], List[int]]:
     """
     Get the minimum and maximum values from the parameters of the solver.
 
     Parameters
     ----------
-    solver_parameters : dict
+    solver_parameters : Dict
         The parameters of solver from the json file.
 
     Returns
@@ -59,7 +59,7 @@ def get_all_min_and_max(solver_parameters: dict) -> Union[List[int], List[int]]:
 
 
 # pylint: disable=too-many-nested-blocks,too-many-locals,too-many-branches,too-many-statements
-def get_genes_set(solver: str, solver_parameters: dict = None) -> List[int]:
+def get_genes_set(solver: str, solver_parameters: Dict = None) -> List[int]:
     """
     Return the gene set for a particular solver.
 
@@ -68,7 +68,7 @@ def get_genes_set(solver: str, solver_parameters: dict = None) -> List[int]:
     ----------
     solver : str
         The solver name for which the gene set is required.
-    solver_parameters : dict, default=None
+    solver_parameters : Dict, default=None
         The parameters of solver from the json file.
 
     Returns
@@ -249,7 +249,7 @@ def get_log_distribution_params(
     max_val: int,
     min_val: int,
     param_names: List,
-    params: dict,
+    params: Dict,
     splittable: bool,
 ) -> Tuple[float, bool, float, bool, bool, float, float, float, List[float]]:
     """
@@ -267,7 +267,7 @@ def get_log_distribution_params(
         Value of the `minval` property of the solver's parameter at parameter index.
     param_names : List
         Parameter name of the solver's parameter at parameter index.
-    params : dict
+    params : Dict
         Solver's parameter set.
     splittable : bool
         Boolean value of the parameter's `splitbydefault` property.
@@ -433,8 +433,8 @@ def split_by_default(
 def get_one_hot_decoded_param_set(
     genes: Union[List, np.ndarray],
     solver: str,
-    param_value_dict: dict = None,
-    solver_parameters: dict = None,
+    param_value_dict: Dict = None,
+    solver_parameters: Dict = None,
     reverse: bool = False,
 ) -> List:
     """
@@ -447,9 +447,9 @@ def get_one_hot_decoded_param_set(
         Genes or parameters (can be random) to be added in the paarameter pool
     solver : str
         name of the solver used to solve problem instances.
-    param_value_dict : dict, default=None
+    param_value_dict : Dict, default=None
         Dictionary of contenders parameters.
-    solver_parameters : dict, default=None
+    solver_parameters : Dict, default=None
         Dictionary of solver's parameters.
     reverse : bool, default=False
         Boolean value whether the parameters are in reverse order or not.
@@ -569,7 +569,7 @@ def get_one_hot_decoded_param_set(
 
 
 def get_params_string_from_numeric_params(
-    genes: np.ndarray, solver: str, solver_parameters: dict = None
+    genes: np.ndarray, solver: str, solver_parameters: Dict = None
 ) -> List[str]:
     """
     Transform string categorical back to string based on solver parameters file `params_{solver}.json.`
@@ -580,7 +580,7 @@ def get_params_string_from_numeric_params(
         Parameter set of the contender.
     solver : str
         Solver used to solve problem instances.
-    solver_parameters : dict, default=None
+    solver_parameters : Dict, default=None
         The parameters used by solver to solve problem instances.
 
     Returns

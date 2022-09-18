@@ -1,11 +1,11 @@
 import math
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 
 
 def log_space_convert(
-    limit_number: int, param_set: np.ndarray, solver_parameter: dict, exp: bool = False
+    limit_number: int, param_set: np.ndarray, solver_parameter: Dict, exp: bool = False
 ) -> np.ndarray:
     """
     Convert the parameter set based on the maximum and minimum values in the json parameter file to logarithm space.
@@ -16,7 +16,7 @@ def log_space_convert(
         Upper and lower limit of the minimum and maximum values from the solver parameter set.
     param_set : np.ndarray
         Parameters to be converted.
-    solver_parameter : dict
+    solver_parameter : Dict
         Parameters of the solver.
     exp : bool
 
@@ -102,7 +102,7 @@ def update_max_min_values(
     max_val_indices: List,
     min_val_indices: List,
     param_names: List,
-    params: dict,
+    params: Dict,
 ) -> Tuple[List, List]:
 
     """
@@ -118,7 +118,7 @@ def update_max_min_values(
         List of indices of the minimum values in the parameter set of the solver.
     param_names : List
         List of keys in the parameter set of the solver.
-    params : dict
+    params : Dict
         Parameter set of the solver.
 
     Returns
@@ -146,13 +146,13 @@ def update_max_min_values(
     return max_val_indices, min_val_indices
 
 
-def _params_init(solver_parameters: dict) -> Tuple[List, List, List, dict, List]:
+def _params_init(solver_parameters: Dict) -> Tuple[List, List, List, Dict, List]:
     """
     Initialize parameters attributes.
 
     Parameters
     ----------
-    solver_parameters : dict
+    solver_parameters : Dict
         Solver's parameters
 
     Returns
@@ -163,7 +163,7 @@ def _params_init(solver_parameters: dict) -> Tuple[List, List, List, dict, List]
         List of indices of the minimum values in the parameter set of the solver.
     param_names: List
         List of keys in the parameter set of the solver.
-    params: dict
+    params: Dict
         Parameter set of the solver.
     to_delete: List
         Parameters to be deleted.
