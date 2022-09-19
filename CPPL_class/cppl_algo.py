@@ -71,14 +71,15 @@ class CPPLAlgo(CPPLConfiguration):
             file_ending = ".cnf"
         else:
             file_ending = ".mps"
-
         while not self.base.is_finished:
+            print("In while")
             # Iterate through all Instances
             for filename in self.base.problem_instance_list:
-
+                print("Reading problem instance file one by one...")
+                print(filename)
                 dot = filename.rfind(".")
                 file_path = f"{self.base.directory}/" + str(filename)
-
+                print(f"{filename[dot:]} == {file_ending}")
                 # Run parametrization on instances
                 if (
                     filename[dot:] == file_ending
