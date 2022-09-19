@@ -132,7 +132,7 @@ class CPPLBase:
         self.Y_t = 0  # The Winning contender, the top-ranked arm among the subset St provided by the underlying
         # contextualized PL model in case of winner feedback
         self.S_t = []  # Subset of contenders Line 9 of CPPL
-
+        self.regret = np.zeros(len(self.problem_instance_list))
         self.winner_known = True
         self.is_finished = False
 
@@ -460,8 +460,8 @@ class CPPLBase:
         params_transformed = self.pca_obj_params.transform(params)
         # construct X_t (context specific (instance information) feature matrix ( and parameterization information))
         n_arms = params.shape[0]  # Distinct Parameters or available arms
-        degree_of_freedom = len(self.theta_bar)  # Distinct Parameters or available arms
-        context_matrix = np.zeros((n_arms, degree_of_freedom))
+        context_vector_dimension = len(self.theta_bar)  # Distinct Parameters or available arms
+        context_matrix = np.zeros((n_arms, context_vector_dimension))
         for i in range(n_arms):
             next_context_vector = join_feature_map(
                 x=params_transformed[
@@ -479,7 +479,7 @@ class CPPLBase:
         v_hat = np.zeros(n_arms)  # Line 7 in CPPL algorithm
         for i in range(n_arms):
             v_hat[i] = np.exp(np.inner(self.theta_bar, context_matrix[i, :]))
-        return context_matrix, degree_of_freedom, features, n_arms, params, v_hat
+        return context_matrix, context_vector_dimension, features, n_arms, params, v_hat
 
     def get_features(self, filename: str) -> np.ndarray:
         """_summary_

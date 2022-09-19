@@ -16,7 +16,7 @@ class UCB:
         CPPL base class object.
     context_matrix : np.ndarray
         A context matrix where each element is a context vector for a arm. Each vector encodes features of the context in which a arm must be chosen.
-    degree_of_freedom : int
+    context_vector_dimension : int
         It is defined as the dimension of the joint feature map vector on the context features.
     n_arms : int
         Total number of arms in the pool.
@@ -29,8 +29,6 @@ class UCB:
         The size of the subset of arms from the pool.
     gradient : np.ndarray
         A numpy array of size n_arms which contains the gradient of the log-likelihood function in the partial winner feedback scenario for each arm in the pool.
-    grad_op_sum : np.ndarray
-        The outer product of the gradient array over the time step.
     hess_sum : np.ndarray
         The sum of the hessian matrix of the log-likelihood function in the partial winner feedback scenario over the time step.
     omega : float
@@ -49,7 +47,7 @@ class UCB:
         self,
         cppl_base_object: CPPLBase,
         context_matrix: np.ndarray,
-        degree_of_freedom: int,  # degree of freedom (len of theta_bar)
+        context_vector_dimension: int,  # degree of freedom (len of theta_bar)
         n_arms: int,  # Number of parameters
         v_hat: np.ndarray,  # mean observed rewards
         logger_name: str = "UCB",
@@ -58,7 +56,7 @@ class UCB:
 
         self.base = cppl_base_object
         self.context_matrix = context_matrix
-        self.degree_of_freedom = degree_of_freedom
+        self.context_vector_dimension = context_vector_dimension
         self.n_arms = n_arms
         self.v_hat = v_hat
         self.logger = logging.getLogger(logger_name)
@@ -66,7 +64,6 @@ class UCB:
 
         self.subset_size = self.base.subset_size
         self.gradient = self.base.grad
-        self.grad_op_sum = self.base.grad_op_sum
         self.hess_sum = self.base.hess_sum
         self.omega = self.base.omega
         self.theta_bar = self.base.theta_bar
@@ -117,10 +114,10 @@ class UCB:
                 context_matrix=self.context_matrix,
             )
             self.hess_sum += hess
-            self.grad_op_sum += np.outer(self.gradient, self.gradient)
+            self.base.grad_op_sum += np.outer(self.gradient, self.gradient) # Can be treated as the preference matrix
 
             try:
-                V_hat = np.asarray((1 / self.time_step) * self.grad_op_sum).astype(
+                V_hat = np.asarray((1 / self.time_step) * self.base.grad_op_sum).astype(
                     "float64"
                 )
                 S_hat = np.asarray((1 / self.time_step) * self.hess_sum).astype(
@@ -139,9 +136,9 @@ class UCB:
                     self.confidence_t[i] = self.omega * np.sqrt(
                         (
                             2 * np.log(self.time_step)
-                            + self.degree_of_freedom
+                            + self.context_vector_dimension
                             + 2
-                            * np.sqrt(self.degree_of_freedom * np.log(self.time_step))
+                            * np.sqrt(self.context_vector_dimension * np.log(self.time_step))
                         )
                         * np.linalg.norm(Sigma_hat_sqrt * M_i * Sigma_hat_sqrt, ord=2)
                     )  # Equation of confidence bound in section 5.3 of https://arxiv.org/pdf/2002.04275.pdf

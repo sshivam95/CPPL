@@ -133,7 +133,6 @@ dmypy.json
 /.idea/modules.xml
 /.idea/other.xml
 /Pool.txt
-/problem_instance_list.txt
 /.idea/inspectionProfiles/profiles_settings.xml
 /Times_per_instance_CPPL.txt
 /.idea/vcs.xml

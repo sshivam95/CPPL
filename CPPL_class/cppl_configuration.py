@@ -95,7 +95,7 @@ class CPPLConfiguration:
         self.filename = filename
         (
             context_matrix,  # Context matrix
-            degree_of_freedom,  # context vector dimension (len of theta_bar)
+            context_vector_dimension,  # context vector dimension (len of theta_bar)
             self.pca_context_features,
             self.n_arms,  # Number of parameters
             self.params,
@@ -106,7 +106,7 @@ class CPPLConfiguration:
         ucb = UCB(
             cppl_base_object=self.base,
             context_matrix=context_matrix,
-            degree_of_freedom=degree_of_freedom,
+            context_vector_dimension=context_vector_dimension,
             n_arms=self.n_arms,
             v_hat=v_hat,
         )
