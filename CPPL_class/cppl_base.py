@@ -51,6 +51,9 @@ class CPPLBase:
         self.args = args
         self.logger = logging.getLogger(logger_name)
         self.logger.setLevel(logger_level)
+        self.pool_filename = f"Pool_{self.args.solver}.json"
+        if self.args.exp == "y":
+            self.pool_filename = f"Pool_exp_{self.args.solver}.json"
 
         self.subset_size = (
             mp.cpu_count()
@@ -70,7 +73,7 @@ class CPPLBase:
             level=logger_level,
         )
         self.tracking_pool = file_logging.tracking_files(
-            filename=f"Pool_{self.args.solver}.json",
+            filename=self.pool_filename,
             logger_name="CPPL_Pool",
             level=logger_level,
         )
@@ -210,7 +213,7 @@ class CPPLBase:
         """
         json_file_name = "params_" + str(self.args.solver)
 
-        with open(f"{Constants.PARAMS_JSON_FOLDER}/{json_file_name}.json", "r") as file:
+        with open(f"{Constants.PARAMS_JSON_FOLDER.value}/{json_file_name}.json", "r") as file:
             data = file.read()
         parameters = json.loads(data)
         param_names = list(parameters.keys())
@@ -271,10 +274,7 @@ class CPPLBase:
                         solver_parameters=self.solver_parameters,
                     )  # Create the contenders pool in a directory
         elif self.args.data == "y":
-            pool_file = f"Pool_{self.args.solver}.json"
-            if self.args.exp == "y":
-                pool_file = f"Pool_exp_{self.args.solver}.json"
-            with open(f"{pool_file}", "r") as file:
+            with open(f"{self.pool_filename}", "r") as file:
                 self.contender_pool = eval(file.read())
                 for contender_index in self.contender_pool:
                     set_param.set_contender_params(
@@ -382,7 +382,7 @@ class CPPLBase:
         all_max, _ = self.cppl_utils.read_parameters(contender_genes=all_max)
         params = np.append(params, [all_min, all_max], axis=0)
         params = log_space_convert(
-            limit_number=float(self.args.paramimit),
+            limit_number=float(self.args.paramlimit),
             param_set=params,
             solver_parameter=self.solver_parameters,
         )

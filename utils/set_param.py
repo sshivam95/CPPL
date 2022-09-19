@@ -1,5 +1,7 @@
 from typing import Dict, List, Optional
 
+from utils.constants import Constants
+
 
 def set_contender_params(
     contender_index: int,
@@ -40,7 +42,7 @@ def set_contender_params(
             else:
                 parameter_set[i] = str(param_names[i]) + str(contender_pool[i])
 
-    with open("ParamPool/" + str(contender_index), "w") as file:
+    with open(f"{Constants.PARAM_POOL_FOLDER.value}/" + str(contender_index), "w") as file:
         print(" ".join(parameter_set), file=file)
 
     if return_it:

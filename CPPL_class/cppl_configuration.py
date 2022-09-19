@@ -52,7 +52,7 @@ class CPPLConfiguration:
         Length of the parameter array of the candidate, by default None.
     """
 
-    def __int__(
+    def __init__(
         self,
         args: Namespace,
         logger_name: str = "CPPLConfiguration",

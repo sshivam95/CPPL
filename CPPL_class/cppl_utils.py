@@ -77,7 +77,7 @@ class CPPLUtils:
             new_params_list = []
             for new_contender in new_contender_pool:
                 parameters_name_list, parameter_value_dict = self.read_param_from_dict(
-                    contender_genes=new_params_list[new_contender],
+                    contender_genes=new_contender_pool[new_contender],
                     parameter_names=parameter_names,
                 )
                 new_params_list.append(parameters_name_list)

@@ -3,6 +3,7 @@
 Run ``python3 CPPL_test_run.py -to 300 -d problem_instance_directory -p pws -s solver_name``
 """
 import argparse
+from time import time
 from CPPL_class.cppl_algo import CPPLAlgo
 from preselection import regret_minimizing_algorithm
 
@@ -65,8 +66,7 @@ def _main():
         "--exp",
         type=str,
         default=None,
-        help="""Type y if prior gene and score data should
-                    be experimental (Pool_exp.txt) []""",
+        help="""Type y if prior gene and score data should be experimental (Pool_exp.txt) []""",
     )
     parser.add_argument(
         "-ch",
@@ -160,8 +160,7 @@ def _main():
         "--paramlimit",
         type=float,
         default=100000,
-        help="""Limit for the possible absolute value of
-                    a parameter for it to be normed to log space before CPPL computation""",
+        help="""Limit for the possible absolute value of a parameter for it to be normed to log space before CPPL computation""",
     )
     parser.add_argument(
         "-bp",
@@ -189,4 +188,7 @@ def _main():
 
 
 if __name__ == "__main__":
+    start = time()
     _main()
+    end = time()
+    print("Execution time: ", end-start)
