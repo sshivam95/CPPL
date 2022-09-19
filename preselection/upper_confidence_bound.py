@@ -93,13 +93,12 @@ class UCB:
         v_hat : np.ndarray
             An updated matrix where each row represents estimated contextualized utility parameters of each arm in the pool.
         """
+        self.step()
+        contender_list_str = self._update_contender_list_str()
+        self.base.regret[self.time_step] = self.compute_regret(theta=self.theta_bar, context_matrix=self.context_matrix, S=self.S_t)
         if self.initial_step:
-            self.step()
-            contender_list_str = self._update_contender_list_str()
             return self.S_t, contender_list_str, self.v_hat
         else:
-            self.step()
-            contender_list_str = self._update_contender_list_str()
             return self.S_t, self.confidence_t, contender_list_str, self.v_hat
 
     def step(self) -> None:
@@ -184,3 +183,33 @@ class UCB:
         for i in range(self.subset_size):
             contender_list_str.append("contender_" + str(self.S_t[i]))
         return contender_list_str
+    
+    def compute_regret(self, theta: np.ndarray, context_matrix: np.ndarray, S: np.ndarray) -> float:
+        """Compute the regret.
+
+        Parameters
+        ----------
+        theta : np.ndarray
+            The score parameter of the arms.
+        context_matrix : np.ndarray
+            A context matrix where each element is a context vector for a arm. Each vector encodes features of the context in which a arm must be chosen.
+        S : np.ndarray
+            The subset of arms from the pool which contains `subset_size` arms with the highest upper bounds on the latent utility.
+
+        Returns
+        -------
+        float
+            The regret.
+        """
+        context_matrix = np.array(context_matrix)
+        # compute v^* of all arms
+        v = np.zeros(self.n_arms)
+        for i in range(self.n_arms):
+            v[i] = np.exp(np.dot(theta, context_matrix[i]))
+        
+        # get best arm
+        best_arm = np.argmax(v)
+        if best_arm in S:
+            return 0 
+        else:
+            return (v[best_arm] - np.max(v[S])) / v[best_arm]
