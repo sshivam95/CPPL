@@ -141,3 +141,4 @@ dmypy.json
 /.vscode/launch.json
 .idea/CPPL.iml
 .idea/codeStyles/codeStyleConfig.xml
+testing.ipynb
