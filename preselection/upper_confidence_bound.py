@@ -104,6 +104,8 @@ class UCB:
 
     def step(self) -> None:
         """Run one step of the algorithm."""
+        print("Time step: ", self.time_step)
+        print(f"Indices of non zero elements in Preference matrix/ Grad op sum: \n {np.nonzero(self.base.grad_op_sum)} \nSizr of Grad op sum: {self.base.grad_op_sum.shape}")
         if self.time_step == 0:
             self.S_t = self.get_best_subset()
         else:

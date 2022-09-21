@@ -69,7 +69,7 @@ class CPPLConfiguration:
         self.n_arms: int = None
         self.params: np.ndarray = None
         self.pca_context_features = None
-        self.discard: List = None
+        self.discard: List = []
         self.subset_contender_list_str: List[str] = None
         self.new_candidates_size = 1000
         self.best_candidate = None
@@ -103,6 +103,7 @@ class CPPLConfiguration:
             self.params,
             v_hat,  # Estimated skill parameter
         ) = self.base.get_context_feature_matrix(filename=self.filename)
+        
         self.discard = []
 
         ucb = UCB(
@@ -158,6 +159,8 @@ class CPPLConfiguration:
                     ):
                         self.discard.append(arm1)
                         break
+                    
+            print("Discard list: ", self.discard)
             if len(self.discard) > 0:
                 self.subset_contender_list_str = self._generate_new_parameters()
 

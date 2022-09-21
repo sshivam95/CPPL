@@ -72,10 +72,8 @@ class CPPLAlgo(CPPLConfiguration):
         else:
             file_ending = ".mps"
         while not self.base.is_finished:
-            self.logger.info("In while")
             # Iterate through all Instances
             for filename in self.base.problem_instance_list:
-                self.logger.info("Reading problem instance file one by one...")
 
                 dot = filename.rfind(".")
                 file_path = f"{self.base.directory}/" + str(filename)
