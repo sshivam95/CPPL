@@ -39,7 +39,9 @@ class CPPLUtils:
         self.solver = solver
         self.solver_parameters = solver_parameters
 
-    def read_parameters(self, contender_genes: List[int] = None) -> Tuple[np.ndarray, Dict]:
+    def read_parameters(
+        self, contender_genes: List[int] = None
+    ) -> Tuple[np.ndarray, Dict]:
         """Return the parameter names and the actual parameters of the given contender.
 
         Parameters

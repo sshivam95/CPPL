@@ -191,4 +191,4 @@ if __name__ == "__main__":
     start = time()
     _main()
     end = time()
-    print("Execution time: ", end-start)
+    print("Execution time: ", end - start)
