@@ -3,6 +3,7 @@ from argparse import Namespace
 import logging
 import multiprocessing as mp
 import random
+import sys
 from typing import List, Tuple, Union
 
 import numpy as np
@@ -10,6 +11,7 @@ import numpy as np
 from CPPL_class.cppl_base import CPPLBase
 from preselection import UCB
 from utils import set_param, random_genes
+from utils.genetic_parameterization import evolution_and_fitness
 from utils.log_params_utils import log_space_convert
 from utils.utility_functions import set_genes, join_feature_map
 
@@ -48,7 +50,7 @@ class CPPLConfiguration:
         The best candidate in the subset with the highest upper bounds on the latent utility, by default None.
     second_candidate 
         The second best candidate in the subset, by default None.
-    candidate_pameters_size: int 
+    candidate_parameters_size: int 
         Length of the parameter array of the candidate, by default None.
     """
 
@@ -72,7 +74,7 @@ class CPPLConfiguration:
         self.new_candidates_size = 1000
         self.best_candidate = None
         self.second_candidate = None
-        self.candidate_pameters_size: int = None
+        self.candidate_parameters_size: int = None
 
     def _get_contender_list(self, filename: str) -> Tuple[np.ndarray, List[str], List]:
         """Returns the subset of contenders from the pool with the highest upper bounds on the latent utility.
@@ -116,7 +118,9 @@ class CPPLConfiguration:
                 self.subset_contender_list_str,
                 v_hat,
             ) = ucb.run()  # Get the subset S_t
-
+            
+            print(f"Subset of contenders from pool: {self.base.S_t}")
+            
             if self.base.args.exp == "y":
                 for i in range(self.base.subset_size):
                     self.subset_contender_list_str[i] = f"contender_{i}"
@@ -141,6 +145,8 @@ class CPPLConfiguration:
                 ucb.run()
             )  # Get the subset S_t along with the confidence intervals if it is not the initial time step.
 
+            print(f"Subset of contenders from pool: {self.base.S_t}")
+            
             # update contenders
             for arm1 in range(self.n_arms):
                 for arm2 in range(self.n_arms):
@@ -209,7 +215,8 @@ class CPPLConfiguration:
         (
             new_candidates_transformed,
             new_candidates,
-        ) = self._parallel_evolution_and_fitness()
+        ) = self._parallel_evolution_and_fitness() 
+
         new_candidates_transformed = self.base.min_max_scalar.transform(
             new_candidates_transformed
         )
@@ -219,15 +226,18 @@ class CPPLConfiguration:
         v_hat_new_candidates = np.zeros(self.new_candidates_size)
 
         for index in range(self.new_candidates_size):
-            context_vector = join_feature_map(
-                x=new_candidates_transformed[index],
-                y=self.pca_context_features,
-                mode=self.base.joint_featured_map_mode,
-            )
+            print(f"Shape of new_candidates_transformed[{index}] : {new_candidates_transformed[index].shape}")
+            print(f"Shape of self.pca_context_features : {self.pca_context_features.shape}")
+            # context_vector = join_feature_map(
+            #     x=new_candidates_transformed[index],
+            #     y=self.pca_context_features,
+            #     mode=self.base.joint_featured_map_mode,
+            # )
 
-            v_hat_new_candidates[index] = np.exp(
-                np.inner(self.base.theta_bar, context_vector)
-            )
+            # v_hat_new_candidates[index] = np.exp(
+            #     np.inner(self.base.theta_bar, context_vector)
+            # )
+        sys.exit(0)
 
         best_new_candidates_list = (-v_hat_new_candidates).argsort()[0:discard_size]
 
@@ -280,9 +290,9 @@ class CPPLConfiguration:
             param_value_dict=self.base.parameter_value_dict,
             solver_parameters=self.base.solver_parameters,
         )
-        self.candidate_pameters_size = len(candidate_pameters)
+        self.candidate_parameters_size = len(candidate_pameters)
         self.new_candidates = np.zeros(
-            shape=(self.new_candidates_size, self.candidate_pameters_size)
+            shape=(self.new_candidates_size, self.candidate_parameters_size)
         )  # TODO: Remove this after clearning doubt.
 
         last_step = self.new_candidates_size % self.base.subset_size
@@ -297,11 +307,12 @@ class CPPLConfiguration:
         step = 0
         pool = mp.Pool(processes=self.base.subset_size)
 
+        print(f"all_steps: {all_steps}")
         for index, _ in enumerate(all_steps):
             step += all_steps[index]
             pool.apply_async(
-                func=self._evolution_and_fitness,
-                args=(all_steps[index]),
+                evolution_and_fitness,
+                args=(all_steps[index], self.new_candidates, self.base, self.candidate_parameters_size, self.best_candidate, self.second_candidate),
                 callback=self.save_result,
             )
         pool.close()
@@ -309,79 +320,11 @@ class CPPLConfiguration:
 
         new_candidates_transformed = []
         new_candidates = []
-
+        
         for i, _ in enumerate(self.async_results):
             for j, _ in enumerate(self.async_results[i][0]):
                 new_candidates_transformed.append(self.async_results[i][0][j])
                 new_candidates.append(self.async_results[i][1][j])
-
-        return new_candidates_transformed, new_candidates
-
-    def _evolution_and_fitness(
-        self, new_candidates_size: int
-    ) -> Tuple[np.ndarray, List]:
-        """A single step to generate new parameters as contenders through genetic engineering approach.
-
-        Parameters
-        ----------
-        new_candidates_size : int
-            The number of newly generated parameters as contenders.
-
-       Returns
-        -------
-        new_candidates_transformed : np.ndarray
-            Newly generated candidate parameters transformed in the log space.
-        new_candidates : List
-            List of newly generated candidate parameters through one hot decode.
-        """
-        # Generation approach based on genetic mechanism with mutation and random individuals
-        new_candidates = np.zeros(
-            shape=(new_candidates_size, len(self.new_candidates[0]))  # TODO: The second shape can be shanged to self.candidate_pameters_size after clearing the doubt.
-        )
-
-        for candidate in range(new_candidates_size):
-            random_individual = random.uniform(0, 1)
-            next_candidate = np.zeros(self.candidate_pameters_size)
-            contender = random_genes.get_genes_set(
-                solver=self.base.args.solver,
-                solver_parameters=self.base.solver_parameters,
-            )
-            genes, _ = self.base.cppl_utils.read_parameters(contender_genes=contender)
-            mutation_genes = random_genes.get_one_hot_decoded_param_set(
-                genes=genes,
-                solver=self.base.args.solver,
-                param_value_dict=self.base.parameter_value_dict,
-                solver_parameters=self.base.solver_parameters,
-            )
-
-            for index in range(self.candidate_pameters_size):
-                random_seed = random.uniform(0, 1)
-                mutation_seed = random.uniform(0, 1)
-
-                # Dueling function
-                if random_seed > 0.5:
-                    next_candidate[index] = self.best_candidate[index]
-                else:
-                    next_candidate[index] = self.second_candidate[candidate]
-                if mutation_seed < 0.1:
-                    next_candidate[index] = mutation_genes[index]
-
-            if random_individual < 0.99:
-                new_candidates[candidate] = mutation_genes
-            else:
-                new_candidates[candidate] = next_candidate
-
-        new_candidates = random_genes.get_one_hot_decoded_param_set(
-            genes=new_candidates,
-            solver=self.base.args.solver,
-            solver_parameters=self.base.solver_parameters,
-            reverse=True,
-        )
-        new_candidates_transformed = log_space_convert(
-            limit_number=self.base.parameter_limit,
-            param_set=new_candidates,
-            solver_parameter=self.base.solver_parameters,
-        )
 
         return new_candidates_transformed, new_candidates
 
@@ -397,7 +340,6 @@ class CPPLConfiguration:
         new_candidates = result[1]
         self.async_results.append([new_candidates_transformed, new_candidates])
 
-    ##################################################################################
 
     def _contender_list_including_generated(self) -> List[str]:
         """Returns contenders from the subset with newly generated one through genetic approach.

@@ -62,6 +62,7 @@ class UCB:
         self.logger = logging.getLogger(logger_name)
         self.logger.setLevel(logger_level)
 
+        self.S_t = self.base.S_t
         self.subset_size = self.base.subset_size
         self.gradient = self.base.grad
         self.hess_sum = self.base.hess_sum
@@ -106,7 +107,7 @@ class UCB:
         if self.time_step == 0:
             self.S_t = self.get_best_subset()
         else:
-            self.confidence_t = np.zero(self.n_arms)
+            self.confidence_t = np.zeros(self.n_arms)
             hess = hessian(
                 theta=self.theta_bar,
                 subset_arms=self.S_t,

@@ -72,14 +72,14 @@ class CPPLAlgo(CPPLConfiguration):
         else:
             file_ending = ".mps"
         while not self.base.is_finished:
-            print("In while")
+            self.logger.info("In while")
             # Iterate through all Instances
             for filename in self.base.problem_instance_list:
-                print("Reading problem instance file one by one...")
-                print(filename)
+                self.logger.info("Reading problem instance file one by one...")
+
                 dot = filename.rfind(".")
                 file_path = f"{self.base.directory}/" + str(filename)
-                print(f"{filename[dot:]} == {file_ending}")
+
                 # Run parametrization on instances
                 if (
                     filename[dot:] == file_ending
@@ -101,11 +101,11 @@ class CPPLAlgo(CPPLConfiguration):
                             discard,  # The discarded contenders.
                         ) = self._get_contender_list(filename=filename)
 
-                        self.base.S_t = []
-                        for contender in self.contender_list:
-                            self.base.S_t.append(
-                                int(contender.replace("contender_", ""))
-                            )  # The subset of contenders after preselection.
+                        # self.base.S_t = []
+                        # for contender in self.contender_list:
+                        #     self.base.S_t.append(
+                        #         int(contender.replace("contender_", ""))
+                        #     )  # The subset of contenders after preselection.
 
                         if discard:
                             self.base.time_step = 1
@@ -175,6 +175,7 @@ class CPPLAlgo(CPPLConfiguration):
             "Finished all instances!\n ",
             "#######################\n",
         )
+        print(f"Regret: {self.base.regret}")
 
     def update(self) -> None:
         """Update the contenders pool, winners list, gradient and mean estimated score parameters after solving a problem instance."""
