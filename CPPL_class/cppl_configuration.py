@@ -225,12 +225,14 @@ class CPPLConfiguration:
         )
         v_hat_new_candidates = np.zeros(self.new_candidates_size)
 
-        for index in range(self.new_candidates_size):
-            print(f"Shape of new_candidates_transformed[{index}] : {new_candidates_transformed[index].shape}")
-            print(f"Shape of self.pca_context_features : {self.pca_context_features.shape}")
+        # for index in range(self.new_candidates_size):
+            # print(f"Shape of new_candidates_transformed[{index}] : {new_candidates_transformed[index].shape}")
+            # print(f"Shape of self.pca_context_features : {self.pca_context_features[0].shape}")
+        print(f"Shape of new_candidates_transformed : {new_candidates_transformed.shape}")
+        print(f"Shape of new_candidates_size : {self.new_candidates_size}")
             # context_vector = join_feature_map(
             #     x=new_candidates_transformed[index],
-            #     y=self.pca_context_features,
+            #     y=self.pca_context_features[0],
             #     mode=self.base.joint_featured_map_mode,
             # )
 
@@ -296,8 +298,8 @@ class CPPLConfiguration:
         )  # TODO: Remove this after clearning doubt.
 
         last_step = self.new_candidates_size % self.base.subset_size
-        self.new_candidates_size = self.new_candidates_size - last_step  # TODO: Check this if the new candidate size have to change or not after clearing doubt.
-        step_size = (self.new_candidates_size) / self.base.subset_size
+        new_candidates_size = self.new_candidates_size - last_step  # TODO: Check this if the new candidate size have to change or not after clearing doubt.
+        step_size = (new_candidates_size) / self.base.subset_size
         all_steps = []
 
         for _ in range(self.base.subset_size):
@@ -312,7 +314,7 @@ class CPPLConfiguration:
             step += all_steps[index]
             pool.apply_async(
                 evolution_and_fitness,
-                args=(all_steps[index], self.new_candidates, self.base, self.candidate_parameters_size, self.best_candidate, self.second_candidate),
+                args=(self.best_candidate, self.second_candidate, len(self.new_candidates[0]), all_steps[index], self.candidate_parameters_size, self.base),
                 callback=self.save_result,
             )
         pool.close()
