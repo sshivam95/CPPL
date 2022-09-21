@@ -213,7 +213,9 @@ class CPPLBase:
         """
         json_file_name = "params_" + str(self.args.solver)
 
-        with open(f"{Constants.PARAMS_JSON_FOLDER.value}/{json_file_name}.json", "r") as file:
+        with open(
+            f"{Constants.PARAMS_JSON_FOLDER.value}/{json_file_name}.json", "r"
+        ) as file:
             data = file.read()
         parameters = json.loads(data)
         param_names = list(parameters.keys())
@@ -460,7 +462,9 @@ class CPPLBase:
         params_transformed = self.pca_obj_params.transform(params)
         # construct X_t (context specific (instance information) feature matrix ( and parameterization information))
         n_arms = params.shape[0]  # Distinct Parameters or available arms
-        context_vector_dimension = len(self.theta_bar)  # Distinct Parameters or available arms
+        context_vector_dimension = len(
+            self.theta_bar
+        )  # Distinct Parameters or available arms
         context_matrix = np.zeros((n_arms, context_vector_dimension))
         for i in range(n_arms):
             next_context_vector = join_feature_map(

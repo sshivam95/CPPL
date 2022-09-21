@@ -27,7 +27,7 @@ class CPPLConfiguration:
         Logger name, by default "CPPLConfiguration"
     logger_level : int, optional
         Level of the logger, by default logging.INFO
-        
+
     Attributes
     ----------
     filename : str
@@ -40,17 +40,17 @@ class CPPLConfiguration:
         A parameter array of all the contenders in the pool, by default None.
     pca_context_features : np.ndarray
         A numpy array of transformed context features, by default None.
-    discard: List 
+    discard: List
         A list of discarded contenders, by default None.
-    subset_contender_list_str: List[str] 
+    subset_contender_list_str: List[str]
         A list of the subset of arms from the pool which contains `CPPLBase.subset_size` (=number of cores in the CPU) arms with the highest upper bounds on the latent utility, by default None.
     new_candidates_size : int
         Number of new generating candidates through genetic selection, by default 1000.
-    best_candidate 
+    best_candidate
         The best candidate in the subset with the highest upper bounds on the latent utility, by default None.
-    second_candidate 
+    second_candidate
         The second best candidate in the subset, by default None.
-    candidate_parameters_size: int 
+    candidate_parameters_size: int
         Length of the parameter array of the candidate, by default None.
     """
 
@@ -103,7 +103,7 @@ class CPPLConfiguration:
             self.params,
             v_hat,  # Estimated skill parameter
         ) = self.base.get_context_feature_matrix(filename=self.filename)
-        
+
         self.discard = []
 
         ucb = UCB(
@@ -119,9 +119,9 @@ class CPPLConfiguration:
                 self.subset_contender_list_str,
                 v_hat,
             ) = ucb.run()  # Get the subset S_t
-            
+
             print(f"Subset of contenders from pool: {self.base.S_t}")
-            
+
             if self.base.args.exp == "y":
                 for i in range(self.base.subset_size):
                     self.subset_contender_list_str[i] = f"contender_{i}"
@@ -147,7 +147,7 @@ class CPPLConfiguration:
             )  # Get the subset S_t along with the confidence intervals if it is not the initial time step.
 
             print(f"Subset of contenders from pool: {self.base.S_t}")
-            
+
             # update contenders
             for arm1 in range(self.n_arms):
                 for arm2 in range(self.n_arms):
@@ -159,7 +159,7 @@ class CPPLConfiguration:
                     ):
                         self.discard.append(arm1)
                         break
-                    
+
             print("Discard list: ", self.discard)
             if len(self.discard) > 0:
                 self.subset_contender_list_str = self._generate_new_parameters()
@@ -218,7 +218,7 @@ class CPPLConfiguration:
         (
             new_candidates_transformed,
             new_candidates,
-        ) = self._parallel_evolution_and_fitness() 
+        ) = self._parallel_evolution_and_fitness()
 
         new_candidates_transformed = self.base.min_max_scalar.transform(
             new_candidates_transformed
@@ -228,20 +228,19 @@ class CPPLConfiguration:
         )
         v_hat_new_candidates = np.zeros(self.new_candidates_size)
 
-        # for index in range(self.new_candidates_size):
-            # print(f"Shape of new_candidates_transformed[{index}] : {new_candidates_transformed[index].shape}")
-            # print(f"Shape of self.pca_context_features : {self.pca_context_features[0].shape}")
+        # for index in range(new_candidates_transformed.shape[0]):
+        print(f"New candidates size: {self.new_candidates_size}")
         print(f"Shape of new_candidates_transformed : {new_candidates_transformed.shape}")
-        print(f"Shape of new_candidates_size : {self.new_candidates_size}")
-            # context_vector = join_feature_map(
-            #     x=new_candidates_transformed[index],
-            #     y=self.pca_context_features[0],
-            #     mode=self.base.joint_featured_map_mode,
-            # )
+        print(f"Shape of self.pca_context_features : {self.pca_context_features[0].shape}")
+        #     context_vector = join_feature_map(
+        #         x=new_candidates_transformed[index],
+        #         y=self.pca_context_features[0],
+        #         mode=self.base.joint_featured_map_mode,
+        #     )
 
-            # v_hat_new_candidates[index] = np.exp(
-            #     np.inner(self.base.theta_bar, context_vector)
-            # )
+        #     v_hat_new_candidates[index] = np.exp(
+        #         np.inner(self.base.theta_bar, context_vector)
+        #     )
         sys.exit(0)
 
         best_new_candidates_list = (-v_hat_new_candidates).argsort()[0:discard_size]
@@ -301,8 +300,10 @@ class CPPLConfiguration:
         )  # TODO: Remove this after clearning doubt.
 
         last_step = self.new_candidates_size % self.base.subset_size
-        new_candidates_size = self.new_candidates_size - last_step  # TODO: Check this if the new candidate size have to change or not after clearing doubt.
-        step_size = (new_candidates_size) / self.base.subset_size
+        self.new_candidates_size = (
+            self.new_candidates_size - last_step
+        )  # TODO: Check this if the new candidate size have to change or not after clearing doubt.
+        step_size = (self.new_candidates_size) / self.base.subset_size
         all_steps = []
 
         for _ in range(self.base.subset_size):
@@ -317,7 +318,14 @@ class CPPLConfiguration:
             step += all_steps[index]
             pool.apply_async(
                 evolution_and_fitness,
-                args=(self.best_candidate, self.second_candidate, len(self.new_candidates[0]), all_steps[index], self.candidate_parameters_size, self.base),
+                args=(
+                    self.best_candidate,
+                    self.second_candidate,
+                    len(self.new_candidates[0]),
+                    all_steps[index],
+                    self.candidate_parameters_size,
+                    self.base,
+                ),
                 callback=self.save_result,
             )
         pool.close()
@@ -326,14 +334,18 @@ class CPPLConfiguration:
         new_candidates_transformed = []
         new_candidates = []
         
+        print(f'Length of async_result: {len(self.async_results)}')
+        file = open("sample.txt", "w")
+        file.write(repr(self.async_results))
         for i, _ in enumerate(self.async_results):
             for j, _ in enumerate(self.async_results[i][0]):
                 new_candidates_transformed.append(self.async_results[i][0][j])
                 new_candidates.append(self.async_results[i][1][j])
+                # print(f'Length of new_candidates_transformed list: {len(new_candidates_transformed)}')
 
         return new_candidates_transformed, new_candidates
 
-    def save_result(self, result:Tuple[np.ndarray, List]) -> None:
+    def save_result(self, result: Tuple[np.ndarray, List]) -> None:
         """Save the results of asynchronous processes.
 
         Parameters
@@ -344,7 +356,6 @@ class CPPLConfiguration:
         new_candidates_transformed = result[0]
         new_candidates = result[1]
         self.async_results.append([new_candidates_transformed, new_candidates])
-
 
     def _contender_list_including_generated(self) -> List[str]:
         """Returns contenders from the subset with newly generated one through genetic approach.
@@ -367,7 +378,9 @@ class CPPLConfiguration:
 
         return contender_list
 
-    def update_logs(self, winning_contender_index: Union[int, str], genes: List[str]) -> None:
+    def update_logs(
+        self, winning_contender_index: Union[int, str], genes: List[str]
+    ) -> None:
         """Update the pool with the winning parameter and the logs to keep track of the contenders in the pool.
 
         Parameters
