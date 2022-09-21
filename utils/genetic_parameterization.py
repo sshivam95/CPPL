@@ -6,12 +6,12 @@ from utils.log_params_utils import log_space_convert
 
 
 def evolution_and_fitness(
-    new_candidates_size: int,
-    new_candidates,
-    base,
-    candidate_parameters_size,
     best_candidate,
-    second_candidate
+    second_candidate,
+    new_candidates,
+    new_candidates_size: int,
+    candidate_parameters_size,
+    base,
 ) -> Tuple[np.ndarray, List]:
     """A single step to generate new parameters as contenders through genetic engineering approach.
 
@@ -28,9 +28,11 @@ def evolution_and_fitness(
         List of newly generated candidate parameters through one hot decode.
     """
     # Generation approach based on genetic mechanism with mutation and random individuals
-    print("evolution_and_fitness")
     new_candidates = np.zeros(
-        shape=(new_candidates_size, len(new_candidates[0]))  # TODO: The second shape can be shanged to candidate_parameters_size after clearing the doubt.
+        shape=(
+            new_candidates_size,
+            new_candidates,
+        )  # TODO: The second shape can be shanged to candidate_parameters_size after clearing the doubt.
     )
 
     for candidate in range(new_candidates_size):
