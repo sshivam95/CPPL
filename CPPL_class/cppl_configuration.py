@@ -11,7 +11,7 @@ import numpy as np
 from CPPL_class.cppl_base import CPPLBase
 from preselection import UCB
 from utils import set_param, random_genes
-from utils.genetic_parameterization import evolution_and_fitness
+from utils.genetic_parameterization import evolution_and_fitness#, save_result, async_results
 from utils.log_params_utils import log_space_convert
 from utils.utility_functions import set_genes, join_feature_map
 
@@ -228,20 +228,20 @@ class CPPLConfiguration:
         )
         v_hat_new_candidates = np.zeros(self.new_candidates_size)
 
-        # for index in range(new_candidates_transformed.shape[0]):
-        print(f"New candidates size: {self.new_candidates_size}")
-        print(f"Shape of new_candidates_transformed : {new_candidates_transformed.shape}")
-        print(f"Shape of self.pca_context_features : {self.pca_context_features[0].shape}")
-        #     context_vector = join_feature_map(
-        #         x=new_candidates_transformed[index],
-        #         y=self.pca_context_features[0],
-        #         mode=self.base.joint_featured_map_mode,
-        #     )
+        for index in range(new_candidates_transformed.shape[0]):
+        # print(f"New candidates size: {self.new_candidates_size}")
+        # print(f"Shape of new_candidates_transformed : {new_candidates_transformed.shape}")
+        # print(f"Shape of self.pca_context_features : {self.pca_context_features[0].shape}")
+            context_vector = join_feature_map(
+                x=new_candidates_transformed[index],
+                y=self.pca_context_features[0],
+                mode=self.base.joint_featured_map_mode,
+            )
 
-        #     v_hat_new_candidates[index] = np.exp(
-        #         np.inner(self.base.theta_bar, context_vector)
-        #     )
-        sys.exit(0)
+            v_hat_new_candidates[index] = np.exp(
+                np.inner(self.base.theta_bar, context_vector)
+            )
+        # sys.exit(0)
 
         best_new_candidates_list = (-v_hat_new_candidates).argsort()[0:discard_size]
 
@@ -298,7 +298,7 @@ class CPPLConfiguration:
         # self.new_candidates = np.zeros(
         #     shape=(self.new_candidates_size, candidate_parameters_size)
         # )  # TODO: Remove this after clearning doubt.
-
+        self.async_results = []
         new_candidates_size = self.new_candidates_size
 
         params_length = len(random_genes.get_one_hot_decoded_param_set(
@@ -323,7 +323,6 @@ class CPPLConfiguration:
         step = 0
         pool = mp.Pool(processes=self.base.subset_size)
 
-        print(f"all_steps: {all_steps}")
         for index, _ in enumerate(all_steps):
             step += all_steps[index]
             pool.apply_async(
@@ -343,18 +342,14 @@ class CPPLConfiguration:
 
         new_candidates_transformed = []
         new_candidates = []
-        
-        print(f'Length of async_result: {len(self.async_results)}')
-        file = open("sample.txt", "w")
-        file.write(repr(self.async_results))
+                
         for i, _ in enumerate(self.async_results):
             for j, _ in enumerate(self.async_results[i][0]):
                 new_candidates_transformed.append(self.async_results[i][0][j])
                 new_candidates.append(self.async_results[i][1][j])
-                # print(f'Length of new_candidates_transformed list: {len(new_candidates_transformed)}')
 
         return new_candidates_transformed, new_candidates
-
+    
     def save_result(self, result: Tuple[np.ndarray, List]) -> None:
         """Save the results of asynchronous processes.
 
