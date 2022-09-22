@@ -5,8 +5,6 @@ from CPPL_class.cppl_base import CPPLBase
 from utils import random_genes
 from utils.log_params_utils import log_space_convert
 
-async_results = []
-
 def evolution_and_fitness(
     best_candidate: np.ndarray,
     second_candidate: np.ndarray,

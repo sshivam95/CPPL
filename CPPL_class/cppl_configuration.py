@@ -384,7 +384,9 @@ class CPPLConfiguration:
         return contender_list
 
     def update_logs(
+        
         self, winning_contender_index: Union[int, str], genes: List[str]
+    
     ) -> None:
         """Update the pool with the winning parameter and the logs to keep track of the contenders in the pool.
 

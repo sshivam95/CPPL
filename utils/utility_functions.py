@@ -136,7 +136,9 @@ def get_problem_instance_list(sorted_directory: Dict) -> List:
     """
     clean_problem_instance_list = ["" for i, _ in enumerate(sorted_directory)]
     for index, _ in enumerate(sorted_directory):
-        clean_problem_instance_list[index] = str(os.fsencode((sorted_directory[index])))[2:-1]
+        clean_problem_instance_list[index] = str(
+            os.fsencode((sorted_directory[index]))
+        )[2:-1]
     return clean_problem_instance_list
 
 

@@ -96,7 +96,9 @@ class UCB:
         """
         self.step()
         contender_list_str = self._update_contender_list_str()
-        self.base.regret[self.time_step] = self.compute_regret(theta=self.theta_bar, context_matrix=self.context_matrix, S=self.S_t)
+        self.base.regret[self.time_step] = self.compute_regret(
+            theta=self.theta_bar, context_matrix=self.context_matrix, S=self.S_t
+        )
         if self.initial_step:
             return self.S_t, contender_list_str, self.v_hat
         else:
@@ -116,7 +118,9 @@ class UCB:
                 context_matrix=self.context_matrix,
             )
             self.hess_sum += hess
-            self.base.grad_op_sum += np.outer(self.gradient, self.gradient) # Can be treated as the preference matrix
+            self.base.grad_op_sum += np.outer(
+                self.gradient, self.gradient
+            )  # Can be treated as the preference matrix
 
             try:
                 V_hat = np.asarray((1 / self.time_step) * self.base.grad_op_sum).astype(
@@ -140,7 +144,9 @@ class UCB:
                             2 * np.log(self.time_step)
                             + self.context_vector_dimension
                             + 2
-                            * np.sqrt(self.context_vector_dimension * np.log(self.time_step))
+                            * np.sqrt(
+                                self.context_vector_dimension * np.log(self.time_step)
+                            )
                         )
                         * np.linalg.norm(Sigma_hat_sqrt * M_i * Sigma_hat_sqrt, ord=2)
                     )  # Equation of confidence bound in section 5.3 of https://arxiv.org/pdf/2002.04275.pdf
@@ -186,8 +192,10 @@ class UCB:
         for i in range(self.subset_size):
             contender_list_str.append("contender_" + str(self.S_t[i]))
         return contender_list_str
-    
-    def compute_regret(self, theta: np.ndarray, context_matrix: np.ndarray, S: np.ndarray) -> float:
+
+    def compute_regret(
+        self, theta: np.ndarray, context_matrix: np.ndarray, S: np.ndarray
+    ) -> float:
         """Compute the regret.
 
         Parameters
@@ -209,10 +217,10 @@ class UCB:
         v = np.zeros(self.n_arms)
         for i in range(self.n_arms):
             v[i] = np.exp(np.dot(theta, context_matrix[i]))
-        
+
         # get best arm
         best_arm = np.argmax(v)
         if best_arm in S:
-            return 0 
+            return 0
         else:
             return (v[best_arm] - np.max(v[S])) / v[best_arm]
