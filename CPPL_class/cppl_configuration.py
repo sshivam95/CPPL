@@ -11,7 +11,7 @@ import numpy as np
 from CPPL_class.cppl_base import CPPLBase
 from preselection import UCB
 from utils import set_param, random_genes
-from utils.genetic_parameterization import evolution_and_fitness
+from utils.genetic_parameterization import evolution_and_fitness#, save_result, async_results
 from utils.log_params_utils import log_space_convert
 from utils.utility_functions import set_genes, join_feature_map
 
@@ -69,7 +69,7 @@ class CPPLConfiguration:
         self.n_arms: int = None
         self.params: np.ndarray = None
         self.pca_context_features = None
-        self.discard: List = None
+        self.discard: List = []
         self.subset_contender_list_str: List[str] = None
         self.new_candidates_size = 1000
         self.best_candidate = None
@@ -103,6 +103,7 @@ class CPPLConfiguration:
             self.params,
             v_hat,  # Estimated skill parameter
         ) = self.base.get_context_feature_matrix(filename=self.filename)
+
         self.discard = []
 
         ucb = UCB(
@@ -158,6 +159,8 @@ class CPPLConfiguration:
                     ):
                         self.discard.append(arm1)
                         break
+
+            print("Discard list: ", self.discard)
             if len(self.discard) > 0:
                 self.subset_contender_list_str = self._generate_new_parameters()
 
@@ -225,23 +228,20 @@ class CPPLConfiguration:
         )
         v_hat_new_candidates = np.zeros(self.new_candidates_size)
 
-        # for index in range(self.new_candidates_size):
-        # print(f"Shape of new_candidates_transformed[{index}] : {new_candidates_transformed[index].shape}")
+        for index in range(new_candidates_transformed.shape[0]):
+        # print(f"New candidates size: {self.new_candidates_size}")
+        # print(f"Shape of new_candidates_transformed : {new_candidates_transformed.shape}")
         # print(f"Shape of self.pca_context_features : {self.pca_context_features[0].shape}")
-        print(
-            f"Shape of new_candidates_transformed : {new_candidates_transformed.shape}"
-        )
-        print(f"Shape of new_candidates_size : {self.new_candidates_size}")
-        # context_vector = join_feature_map(
-        #     x=new_candidates_transformed[index],
-        #     y=self.pca_context_features[0],
-        #     mode=self.base.joint_featured_map_mode,
-        # )
+            context_vector = join_feature_map(
+                x=new_candidates_transformed[index],
+                y=self.pca_context_features[0],
+                mode=self.base.joint_featured_map_mode,
+            )
 
-        # v_hat_new_candidates[index] = np.exp(
-        #     np.inner(self.base.theta_bar, context_vector)
-        # )
-        sys.exit(0)
+            v_hat_new_candidates[index] = np.exp(
+                np.inner(self.base.theta_bar, context_vector)
+            )
+        # sys.exit(0)
 
         best_new_candidates_list = (-v_hat_new_candidates).argsort()[0:discard_size]
 
@@ -288,20 +288,30 @@ class CPPLConfiguration:
         new_candidates : List
             List of newly generated candidate parameters through one hot decode.
         """
-        candidate_pameters = random_genes.get_one_hot_decoded_param_set(
-            genes=self.params[self.base.S_t[0]],
-            solver=self.base.args.solver,
-            param_value_dict=self.base.parameter_value_dict,
-            solver_parameters=self.base.solver_parameters,
-        )
-        self.candidate_parameters_size = len(candidate_pameters)
-        self.new_candidates = np.zeros(
-            shape=(self.new_candidates_size, self.candidate_parameters_size)
-        )  # TODO: Remove this after clearning doubt.
+        # candidate_pameters = random_genes.get_one_hot_decoded_param_set(
+        #     genes=self.params[self.base.S_t[0]],
+        #     solver=self.base.args.solver,
+        #     param_value_dict=self.base.parameter_value_dict,
+        #     solver_parameters=self.base.solver_parameters,
+        # )
+        # candidate_parameters_size = len(candidate_pameters)
+        # self.new_candidates = np.zeros(
+        #     shape=(self.new_candidates_size, candidate_parameters_size)
+        # )  # TODO: Remove this after clearning doubt.
+        self.async_results = []
+        new_candidates_size = self.new_candidates_size
 
-        last_step = self.new_candidates_size % self.base.subset_size
+        params_length = len(random_genes.get_one_hot_decoded_param_set(
+                genes=self.params[self.base.S_t[0]], 
+                solver=self.base.args.solver,
+                param_value_dict=self.base.parameter_value_dict,
+                solver_parameters=self.base.solver_parameters
+            ))
+        new_candidates = np.zeros(shape=(new_candidates_size, params_length))
+
+        last_step = new_candidates_size % self.base.subset_size
         new_candidates_size = (
-            self.new_candidates_size - last_step
+            new_candidates_size - last_step
         )  # TODO: Check this if the new candidate size have to change or not after clearing doubt.
         step_size = (new_candidates_size) / self.base.subset_size
         all_steps = []
@@ -313,7 +323,6 @@ class CPPLConfiguration:
         step = 0
         pool = mp.Pool(processes=self.base.subset_size)
 
-        print(f"all_steps: {all_steps}")
         for index, _ in enumerate(all_steps):
             step += all_steps[index]
             pool.apply_async(
@@ -321,9 +330,9 @@ class CPPLConfiguration:
                 args=(
                     self.best_candidate,
                     self.second_candidate,
-                    len(self.new_candidates[0]),
+                    len(new_candidates[0]),
                     all_steps[index],
-                    self.candidate_parameters_size,
+                    params_length,
                     self.base,
                 ),
                 callback=self.save_result,
@@ -333,14 +342,14 @@ class CPPLConfiguration:
 
         new_candidates_transformed = []
         new_candidates = []
-
+                
         for i, _ in enumerate(self.async_results):
             for j, _ in enumerate(self.async_results[i][0]):
                 new_candidates_transformed.append(self.async_results[i][0][j])
                 new_candidates.append(self.async_results[i][1][j])
 
         return new_candidates_transformed, new_candidates
-
+    
     def save_result(self, result: Tuple[np.ndarray, List]) -> None:
         """Save the results of asynchronous processes.
 
@@ -375,7 +384,9 @@ class CPPLConfiguration:
         return contender_list
 
     def update_logs(
+        
         self, winning_contender_index: Union[int, str], genes: List[str]
+    
     ) -> None:
         """Update the pool with the winning parameter and the logs to keep track of the contenders in the pool.
 

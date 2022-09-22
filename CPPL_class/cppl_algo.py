@@ -71,11 +71,10 @@ class CPPLAlgo(CPPLConfiguration):
             file_ending = ".cnf"
         else:
             file_ending = ".mps"
+            
         while not self.base.is_finished:
-            self.logger.info("In while")
             # Iterate through all Instances
             for filename in self.base.problem_instance_list:
-                self.logger.info("Reading problem instance file one by one...")
 
                 dot = filename.rfind(".")
                 file_path = f"{self.base.directory}/" + str(filename)
@@ -165,11 +164,12 @@ class CPPLAlgo(CPPLConfiguration):
 
                     # Log Winners of problem instances
                     self.base.tracking_winners.info(self.winners_list)
-
                 else:
-                    # When directory has no more instances, break
-                    self.base.is_finished = True
+                    break
 
+            # When directory has no more instances, break
+            self.base.is_finished = True
+            
         print(
             "\n  #######################\n ",
             "Finished all instances!\n ",
