@@ -1,31 +1,44 @@
 import random
 from typing import List, Tuple
 import numpy as np
+from CPPL_class.cppl_base import CPPLBase
 from utils import random_genes
 from utils.log_params_utils import log_space_convert
 
+async_results = []
 
 def evolution_and_fitness(
-    best_candidate,
-    second_candidate,
-    new_candidates,
+    best_candidate: np.ndarray,
+    second_candidate: np.ndarray,
+    num_parameters: int,
     new_candidates_size: int,
-    params_length,
+    params_length: int,
     base: CPPLBase,
 ) -> Tuple[np.ndarray, List]:
-    """A single step to generate new parameters as contenders through genetic engineering approach.
-
+    """Generate new parameters as contenders through genetic engineering approach.
+       
     Parameters
     ----------
-    new_candidates_size : int
+    best_candidate : np.ndarray
+        The random parameters based on the best candidate in the subset arm. 
+    second_candidate : np.ndarray
+        The random parameters based on the second best candidate in the subset arm. 
+    num_parameters : int
         The number of newly generated parameters as contenders.
+    new_candidates_size : int
+        The total number of candidates to be created in a single run.
+    params_length : int
+        Length of the random parameters based on the best candidate in the subset arm. 
+    base : CPPLBase
+        The base class object.
 
     Returns
     -------
     new_candidates_transformed : np.ndarray
         Newly generated candidate parameters transformed in the log space.
-    new_candidates : List
+    num_parameters : List
         List of newly generated candidate parameters through one hot decode.
+
     """
     solver = base.args.solver
     solver_parameters = base.solver_parameters
@@ -33,7 +46,7 @@ def evolution_and_fitness(
     new_candidates = np.zeros(
         shape=(
             new_candidates_size,
-            new_candidates,
+            num_parameters,
         )  # TODO: The second shape can be shanged to params_length after clearing the doubt.
     )
 
@@ -60,7 +73,7 @@ def evolution_and_fitness(
             if random_seed > 0.5:
                 next_candidate[index] = best_candidate[index]
             else:
-                next_candidate[index] = second_candidate[candidate]
+                next_candidate[index] = second_candidate[index]
             if mutation_seed < 0.1:
                 next_candidate[index] = mutation_genes[index]
 
