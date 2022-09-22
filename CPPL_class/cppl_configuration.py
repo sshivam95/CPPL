@@ -288,22 +288,32 @@ class CPPLConfiguration:
         new_candidates : List
             List of newly generated candidate parameters through one hot decode.
         """
-        candidate_pameters = random_genes.get_one_hot_decoded_param_set(
-            genes=self.params[self.base.S_t[0]],
-            solver=self.base.args.solver,
-            param_value_dict=self.base.parameter_value_dict,
-            solver_parameters=self.base.solver_parameters,
-        )
-        self.candidate_parameters_size = len(candidate_pameters)
-        self.new_candidates = np.zeros(
-            shape=(self.new_candidates_size, self.candidate_parameters_size)
-        )  # TODO: Remove this after clearning doubt.
+        # candidate_pameters = random_genes.get_one_hot_decoded_param_set(
+        #     genes=self.params[self.base.S_t[0]],
+        #     solver=self.base.args.solver,
+        #     param_value_dict=self.base.parameter_value_dict,
+        #     solver_parameters=self.base.solver_parameters,
+        # )
+        # candidate_parameters_size = len(candidate_pameters)
+        # self.new_candidates = np.zeros(
+        #     shape=(self.new_candidates_size, candidate_parameters_size)
+        # )  # TODO: Remove this after clearning doubt.
 
-        last_step = self.new_candidates_size % self.base.subset_size
-        self.new_candidates_size = (
-            self.new_candidates_size - last_step
+        new_candidates_size = self.new_candidates_size
+
+        params_length = len(random_genes.get_one_hot_decoded_param_set(
+                genes=self.params[self.base.S_t[0]], 
+                solver=self.base.args.solver,
+                param_value_dict=self.base.parameter_value_dict,
+                solver_parameters=self.base.solver_parameters
+            ))
+        new_candidates = np.zeros(shape=(new_candidates_size, params_length))
+
+        last_step = new_candidates_size % self.base.subset_size
+        new_candidates_size = (
+            new_candidates_size - last_step
         )  # TODO: Check this if the new candidate size have to change or not after clearing doubt.
-        step_size = (self.new_candidates_size) / self.base.subset_size
+        step_size = (new_candidates_size) / self.base.subset_size
         all_steps = []
 
         for _ in range(self.base.subset_size):
@@ -321,9 +331,9 @@ class CPPLConfiguration:
                 args=(
                     self.best_candidate,
                     self.second_candidate,
-                    len(self.new_candidates[0]),
+                    len(new_candidates[0]),
                     all_steps[index],
-                    self.candidate_parameters_size,
+                    params_length,
                     self.base,
                 ),
                 callback=self.save_result,
