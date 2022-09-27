@@ -142,3 +142,6 @@ dmypy.json
 .idea/CPPL.iml
 .idea/codeStyles/codeStyleConfig.xml
 testing.ipynb
+singularity/compile_env.sh
+singularity/pbcppl.def
+singularity/pbcppl.sif
