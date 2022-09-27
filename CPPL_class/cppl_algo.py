@@ -165,6 +165,7 @@ class CPPLAlgo(CPPLConfiguration):
                     # Log Winners of problem instances
                     self.base.tracking_winners.info(self.winners_list)
                 else:
+                    print(f"{filename} is not of correct extension for the solver.\n")
                     break
 
             # When directory has no more instances, break

@@ -121,6 +121,7 @@ class Tournament:
         self.results = [[0 for _ in range(2)] for _ in range(self.subset_size)]
         self.interim_result = [[0 for _ in range(3)] for _ in range(self.subset_size)]
         self.start_time = time.time()
+        self.base.winner_known = True
 
     def run(self) -> None:
         """Run the tournament on a subset of contenders from the contender pool."""

@@ -11,7 +11,7 @@ import numpy as np
 from CPPL_class.cppl_base import CPPLBase
 from preselection import UCB
 from utils import set_param, random_genes
-from utils.genetic_parameterization import evolution_and_fitness#, save_result, async_results
+from utils.genetic_parameterization import evolution_and_fitness
 from utils.log_params_utils import log_space_convert
 from utils.utility_functions import set_genes, join_feature_map
 
@@ -55,10 +55,10 @@ class CPPLConfiguration:
     """
 
     def __init__(
-        self,
-        args: Namespace,
-        logger_name: str = "CPPLConfiguration",
-        logger_level: int = logging.INFO,
+            self,
+            args: Namespace,
+            logger_name: str = "CPPLConfiguration",
+            logger_level: int = logging.INFO,
     ):
         self.base = CPPLBase(args=args)  # Create a base class object.
         self.logger = logging.getLogger(logger_name)
@@ -152,10 +152,10 @@ class CPPLConfiguration:
             for arm1 in range(self.n_arms):
                 for arm2 in range(self.n_arms):
                     if (
-                        arm2 != arm1
-                        and v_hat[arm2] - confidence_t[arm2]
-                        >= v_hat[arm1] + confidence_t[arm1]
-                        and (not arm1 in self.discard)
+                            arm2 != arm1
+                            and v_hat[arm2] - confidence_t[arm2]
+                            >= v_hat[arm1] + confidence_t[arm1]
+                            and (not arm1 in self.discard)
                     ):
                         self.discard.append(arm1)
                         break
@@ -209,7 +209,7 @@ class CPPLConfiguration:
                 genes=random_parameters[self.base.S_t[1]],
                 solver=self.base.args.solver,
                 param_value_dict=self.base.parameter_value_dict,
-                solver_parameters=self.base.solver_parameters,
+                solver_parameters=self.base.solver_parameters,  
             ),
             solver_parameter=self.base.solver_parameters,
             exp=True,
@@ -229,9 +229,9 @@ class CPPLConfiguration:
         v_hat_new_candidates = np.zeros(self.new_candidates_size)
 
         for index in range(new_candidates_transformed.shape[0]):
-        # print(f"New candidates size: {self.new_candidates_size}")
-        # print(f"Shape of new_candidates_transformed : {new_candidates_transformed.shape}")
-        # print(f"Shape of self.pca_context_features : {self.pca_context_features[0].shape}")
+            # print(f"New candidates size: {self.new_candidates_size}")
+            # print(f"Shape of new_candidates_transformed : {new_candidates_transformed.shape}")
+            # print(f"Shape of self.pca_context_features : {self.pca_context_features[0].shape}")
             context_vector = join_feature_map(
                 x=new_candidates_transformed[index],
                 y=self.pca_context_features[0],
@@ -288,30 +288,21 @@ class CPPLConfiguration:
         new_candidates : List
             List of newly generated candidate parameters through one hot decode.
         """
-        # candidate_pameters = random_genes.get_one_hot_decoded_param_set(
-        #     genes=self.params[self.base.S_t[0]],
-        #     solver=self.base.args.solver,
-        #     param_value_dict=self.base.parameter_value_dict,
-        #     solver_parameters=self.base.solver_parameters,
-        # )
-        # candidate_parameters_size = len(candidate_pameters)
-        # self.new_candidates = np.zeros(
-        #     shape=(self.new_candidates_size, candidate_parameters_size)
-        # )  # TODO: Remove this after clearning doubt.
+        
         self.async_results = []
         new_candidates_size = self.new_candidates_size
 
         params_length = len(random_genes.get_one_hot_decoded_param_set(
-                genes=self.params[self.base.S_t[0]], 
-                solver=self.base.args.solver,
-                param_value_dict=self.base.parameter_value_dict,
-                solver_parameters=self.base.solver_parameters
-            ))
+            genes=self.params[self.base.S_t[0]],
+            solver=self.base.args.solver,
+            param_value_dict=self.base.parameter_value_dict,
+            solver_parameters=self.base.solver_parameters
+        ))
         new_candidates = np.zeros(shape=(new_candidates_size, params_length))
 
         last_step = new_candidates_size % self.base.subset_size
         new_candidates_size = (
-            new_candidates_size - last_step
+                new_candidates_size - last_step
         )  # TODO: Check this if the new candidate size have to change or not after clearing doubt.
         step_size = (new_candidates_size) / self.base.subset_size
         all_steps = []
@@ -342,14 +333,14 @@ class CPPLConfiguration:
 
         new_candidates_transformed = []
         new_candidates = []
-                
+
         for i, _ in enumerate(self.async_results):
             for j, _ in enumerate(self.async_results[i][0]):
                 new_candidates_transformed.append(self.async_results[i][0][j])
                 new_candidates.append(self.async_results[i][1][j])
 
         return new_candidates_transformed, new_candidates
-    
+
     def save_result(self, result: Tuple[np.ndarray, List]) -> None:
         """Save the results of asynchronous processes.
 
@@ -376,17 +367,18 @@ class CPPLConfiguration:
             filename=self.filename
         )
 
-        S_t = (-v_hat).argsort()[0 : self.base.subset_size]
+        S_t = (-v_hat).argsort()[0: self.base.subset_size]
 
+        print("Generated Contender list when winner is not known: ", S_t)
         for index in range(self.base.subset_size):
             contender_list.append("contender_" + str(S_t[index]))
 
         return contender_list
 
     def update_logs(
-        
-        self, winning_contender_index: Union[int, str], genes: List[str]
-    
+
+            self, winning_contender_index: Union[int, str], genes: List[str]
+
     ) -> None:
         """Update the pool with the winning parameter and the logs to keep track of the contenders in the pool.
 
@@ -399,5 +391,5 @@ class CPPLConfiguration:
         """
         self.base.contender_pool[
             "contender_" + str(winning_contender_index)
-        ] = genes  # TODO: change to local pool after clarification
+            ] = genes  # TODO: change to local pool after clarification
         self.base.tracking_pool.info(self.base.contender_pool)
