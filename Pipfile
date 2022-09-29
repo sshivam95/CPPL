@@ -1,0 +1,14 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+
+[packages]
+numpy = "==1.21.5"
+scikit-learn = "==1.1.2"
+docplex = "==2.23.222"
+jsonschema = "==4.4.0"
+scipy = "==1.7.3"
+
+[requires] # Here goes your required Python version.
+python_version = "3.8"
+
