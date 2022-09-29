@@ -1,0 +1,5 @@
+docplex==2.23.222
+jsonschema==4.4.0
+numpy==1.21.5
+scikit_learn==1.1.2
+scipy==1.7.3
