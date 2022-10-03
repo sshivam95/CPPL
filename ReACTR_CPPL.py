@@ -608,7 +608,7 @@ if __name__ == '__main__':
 
                 # Output Setting
                 if args.data == 'y':
-                	    print('Prior contender data is used!\n')
+                    print('Prior contender data is used!\n')
                 print('Timeout set to', args.timeout, 'seconds\n')
                 print('Poolsize set to', args.contenders, 'individuals\n')
                 if args.pws == 'pws':
