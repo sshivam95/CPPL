@@ -199,3 +199,4 @@ singularity/compile_env.sh
 singularity/pbcppl.def
 singularity/pbcppl.sif
 .idea/.gitignore
+.idea/Code.iml
