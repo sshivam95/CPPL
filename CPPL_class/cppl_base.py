@@ -1,5 +1,4 @@
 """The Base class of CPPL algorithm."""
-from argparse import Namespace
 import csv
 import json
 import logging
@@ -7,22 +6,23 @@ import multiprocessing as mp
 import os
 import pathlib
 import sys
-from typing import Dict, List, Tuple
+from argparse import Namespace
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler, MinMaxScaler, normalize
-
-from CPPL_class.cppl_utils import CPPLUtils
-from utils import file_logging, set_param, random_genes
+from sklearn.preprocessing import MinMaxScaler, StandardScaler, normalize
+from utils import file_logging, random_genes
 from utils.constants import Constants
 from utils.log_params_utils import log_space_convert
 from utils.utility_functions import (
-    json_validation,
-    set_genes,
     get_problem_instance_list,
     join_feature_map,
+    json_validation,
+    set_genes,
 )
+
+from CPPL_class.cppl_utils import CPPLUtils
 
 
 class CPPLBase:
@@ -51,13 +51,19 @@ class CPPLBase:
         self.args = args
         self.logger = logging.getLogger(logger_name)
         self.logger.setLevel(logger_level)
+
         self.pool_filename = f"Pool_{self.args.solver}.json"
         if self.args.exp == "y":
             self.pool_filename = f"Pool_exp_{self.args.solver}.json"
 
+        self.num_contenders = self.args.contenders
         self.subset_size = (
             mp.cpu_count()
         )  # subset size (k) in algorithm =  number of cpu available
+
+        if self.subset_size > self.num_contenders:
+            self.subset_size = int(self.num_contenders / 2)
+
         self.parameter_limit = float(args.paramlimit)
         self.instance_execution_times = []
 
@@ -96,11 +102,13 @@ class CPPLBase:
             self.pca_obj_instances,
             self.train_list,
         ) = self._init_pca_features()
+
         self.cppl_utils = CPPLUtils(
             pool=self.contender_pool,
             solver=self.args.solver,
             solver_parameters=self.solver_parameters,
         )
+
         (
             self.params,
             self.parameter_value_dict,
@@ -182,11 +190,13 @@ class CPPLBase:
             print("\nYou need to choose a solver!!!\n\n**[-s <solver_name>]**\n\n")
             sys.exit(0)
         else:
-            parameter_directory = pathlib.Path(f"{Constants.PARAM_POOL_FOLDER.value}")
+            parameter_directory = pathlib.Path(
+                f"{Constants.PARAM_POOL_FOLDER.value}_{self.args.solver}"
+            )
             if parameter_directory.exists():
                 pass
             else:
-                os.mkdir(f"{Constants.PARAM_POOL_FOLDER.value}")
+                os.mkdir(f"{Constants.PARAM_POOL_FOLDER.value}_{self.args.solver}")
 
         # Check training is required
         if self.args.train_number is not None:
@@ -240,29 +250,27 @@ class CPPLBase:
     def _init_pool(self) -> None:
         """_summary_"""
         if self.args.data is None:
-            pool_keys = [f"contender_{c}" for c in range(self.args.contenders)]
+            pool_keys = [f"contender_{c}" for c in range(self.num_contenders)]
             self.contender_pool = dict.fromkeys(pool_keys, 0)
 
             if self.args.baselineperf:
-                print("Baseline Performance Run (onl%s default parameters)")
+                print("Baseline Performance Run (only default parameters)")
                 for contender_index in self.contender_pool:
                     self.contender_pool[contender_index] = set_genes(
                         solver_parameters=self.solver_parameters
                     )
-                    set_param.set_contender_params(
+                    self.set_contender_params(
                         contender_index=contender_index,
                         contender_pool=self.contender_pool[contender_index],
-                        solver_parameters=self.solver_parameters,
                     )
             else:
                 for contender_index in self.contender_pool:
                     self.contender_pool[contender_index] = random_genes.get_genes_set(
                         solver=self.args.solver
                     )
-                    set_param.set_contender_params(
+                    self.set_contender_params(
                         contender_index=contender_index,
                         contender_pool=self.contender_pool[contender_index],
-                        solver_parameters=self.solver_parameters,
                     )
 
                 if self.args.pws is not None:
@@ -270,19 +278,17 @@ class CPPLBase:
                     self.contender_pool[contender_index] = set_genes(
                         solver_parameters=self.solver_parameters
                     )
-                    set_param.set_contender_params(
+                    self.set_contender_params(
                         contender_index=contender_index,
                         contender_pool=self.contender_pool[contender_index],
-                        solver_parameters=self.solver_parameters,
                     )  # Create the contenders pool in a directory
         elif self.args.data == "y":
             with open(f"{self.pool_filename}", "r") as file:
                 self.contender_pool = eval(file.read())
                 for contender_index in self.contender_pool:
-                    set_param.set_contender_params(
+                    self.set_contender_params(
                         contender_index=contender_index,
                         contender_pool=self.contender_pool[contender_index],
-                        solver_parameters=self.solver_parameters,
                     )
 
     def _init_output_files(self) -> None:
@@ -431,7 +437,7 @@ class CPPLBase:
         return candidates_pool_dimensions
 
     def get_context_feature_matrix(
-        self, filename: str
+        self, features, params, n_arms
     ) -> Tuple[np.ndarray, int, np.ndarray, int, np.ndarray, np.ndarray]:
         """_summary_
 
@@ -445,23 +451,9 @@ class CPPLBase:
         Tuple[np.ndarray, int, np.ndarray, int, np.ndarray, np.ndarray]
             _description_
         """
-        # read and preprocess instance features (PCA)
-        features = self.get_features(filename=f"{filename}")
-        features = self.standard_scalar.transform(features.reshape(1, -1))
-        features = self.pca_obj_instances.transform(features)
-        # get parametrization
-        params, _ = self.cppl_utils.read_parameters()
-        params = np.asarray(params)
-        params = log_space_convert(
-            limit_number=self.parameter_limit,
-            param_set=params,
-            solver_parameter=self.solver_parameters,
-        )
-        params = self.min_max_scalar.transform(params)
         # PCA on parametrization
         params_transformed = self.pca_obj_params.transform(params)
         # construct X_t (context specific (instance information) feature matrix ( and parameterization information))
-        n_arms = params.shape[0]  # Distinct Parameters or available arms
         context_vector_dimension = len(
             self.theta_bar
         )  # Distinct Parameters or available arms
@@ -476,14 +468,36 @@ class CPPLBase:
             )
             context_matrix[i, :] = next_context_vector
         # Normalizing the context specific features
-        normalize(
+        context_matrix = normalize(
             context_matrix, norm="max", copy=False
-        )  # TODO add "X_t =" after clearing the doubt
+        )  
+        return (context_matrix)
+
+    def get_skill_vector(self, n_arms, context_matrix):
         # compute estimated contextualized utility parameters (v_hat)
-        v_hat = np.zeros(n_arms)  # Line 7 in CPPL algorithm
+        skill_vector = np.zeros(n_arms)  # Line 7 in CPPL algorithm
         for i in range(n_arms):
-            v_hat[i] = np.exp(np.inner(self.theta_bar, context_matrix[i, :]))
-        return context_matrix, context_vector_dimension, features, n_arms, params, v_hat
+            skill_vector[i] = np.exp(np.inner(self.theta_bar, context_matrix[i, :]))
+        return skill_vector
+
+    def get_parameterizations(self):
+        # get parametrization
+        params, _ = self.cppl_utils.read_parameters()
+        params = np.asarray(params)
+        params = log_space_convert(
+            limit_number=self.parameter_limit,
+            param_set=params,
+            solver_parameter=self.solver_parameters,
+        )
+        params = self.min_max_scalar.transform(params)
+        return params
+
+    def get_pca_context_features(self, filename):
+        # read and preprocess instance features (PCA)
+        features = self.get_features(filename=f"{filename}")
+        features = self.standard_scalar.transform(features.reshape(1, -1))
+        features = self.pca_obj_instances.transform(features)
+        return features
 
     def get_features(self, filename: str) -> np.ndarray:
         """_summary_
@@ -508,3 +522,50 @@ class CPPLBase:
                     csvFile.close()
                     break
         return np.asarray(features)
+
+    def set_contender_params(
+        self,
+        contender_index: int,
+        contender_pool: Dict,
+        return_it: bool = False,
+    ) -> Optional[List]:
+        """
+        Set the parameters for the contenders, i.e., arms.
+
+        Parameters
+        ----------
+        contender_index : int
+            Index of the contender for parameterization.
+        contender_pool : Dict
+            The pool of contenders participating in the tournament.
+        return_it : bool, default=False
+            Boolean whether to return the parameter set.
+
+        Returns
+        -------
+        parameter_set: Optional[List]
+            The parameter set of the contender ot arm.
+        """
+        param_names = list(self.solver_parameters.keys())
+        params = self.solver_parameters
+
+        parameter_set = [0 for _ in range(len(contender_pool))]
+
+        for i in range(len(contender_pool)):
+            if "flag" in params[param_names[i]]:
+                parameter_set[i] = str(contender_pool[i])
+            else:
+                if self.solver_parameters[param_names[i]]["paramtype"] == "discrete":
+                    parameter_set[i] = str(param_names[i]) + str(int(contender_pool[i]))
+                else:
+                    parameter_set[i] = str(param_names[i]) + str(contender_pool[i])
+
+        with open(
+            f"{Constants.PARAM_POOL_FOLDER.value}_{self.args.solver}/"
+            + str(contender_index),
+            "w",
+        ) as file:
+            print(" ".join(parameter_set), file=file)
+
+        if return_it:
+            return parameter_set

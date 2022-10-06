@@ -65,13 +65,14 @@ class CPPLAlgo(CPPLConfiguration):
 
         Completion is determined by whether the solver has solved all the problem instance files.
         """
+        print(f"Solver: {self.solver}")
         # Read Instance file name to hand to solver
         # and check for format
         if self.solver == "cadical" or self.solver == "glucose":
             file_ending = ".cnf"
         else:
             file_ending = ".mps"
-            
+
         while not self.base.is_finished:
             # Iterate through all Instances
             for filename in self.base.problem_instance_list:
@@ -100,11 +101,13 @@ class CPPLAlgo(CPPLConfiguration):
                             discard,  # The discarded contenders.
                         ) = self._get_contender_list(filename=filename)
 
-                        # self.base.S_t = []
-                        # for contender in self.contender_list:
-                        #     self.base.S_t.append(
-                        #         int(contender.replace("contender_", ""))
-                        #     )  # The subset of contenders after preselection.
+                        self.base.S_t = []
+                        for contender in self.contender_list:
+                            self.base.S_t.append(
+                                int(contender.replace("contender_", ""))
+                            )  # The subset of contenders after preselection.
+                        
+                        print(f"Subset of contenders from pool: {self.base.S_t}")
 
                         if discard:
                             self.base.time_step = 1
@@ -170,7 +173,7 @@ class CPPLAlgo(CPPLConfiguration):
 
             # When directory has no more instances, break
             self.base.is_finished = True
-            
+
         print(
             "\n  #######################\n ",
             "Finished all instances!\n ",
