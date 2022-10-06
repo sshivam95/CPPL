@@ -1,12 +1,11 @@
 """An implementation of CPPL algorithm."""
-from argparse import Namespace
 import logging
+from argparse import Namespace
+
+from tournament_classes.tournament import Tournament
+from utils.utility_functions import gradient
 
 from CPPL_class.cppl_configuration import CPPLConfiguration
-from utils.utility_functions import (
-    gradient,
-)
-from tournament_classes.tournament import Tournament
 
 
 class CPPLAlgo(CPPLConfiguration):
@@ -106,7 +105,7 @@ class CPPLAlgo(CPPLConfiguration):
                             self.base.S_t.append(
                                 int(contender.replace("contender_", ""))
                             )  # The subset of contenders after preselection.
-                        
+
                         print(f"Subset of contenders from pool: {self.base.S_t}")
 
                         if discard:
