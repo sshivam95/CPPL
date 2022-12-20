@@ -122,7 +122,7 @@ def join_feature_map(x: np.ndarray, y: np.ndarray, mode: str) -> np.ndarray:
 
 def get_problem_instance_list(sorted_directory: Dict) -> List:
     """
-    Returns clean problem instances as a list.
+    Returns clean problem instances as a list based on the ordering.
 
     Parameters
     ----------
@@ -132,9 +132,11 @@ def get_problem_instance_list(sorted_directory: Dict) -> List:
     Returns
     -------
     List
-        clean_problem_instance_list: A list containing all the names of the problem instances to be solved.
+        clean_problem_instance_list: A clean list containing all the names of the problem instances to be solved.
     """
     clean_problem_instance_list = ["" for i, _ in enumerate(sorted_directory)]
+    
+    # Extract clean names of the problem instances from the csv file.
     for index, _ in enumerate(sorted_directory):
         clean_problem_instance_list[index] = str(
             os.fsencode((sorted_directory[index]))

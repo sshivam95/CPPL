@@ -3,15 +3,15 @@ import logging
 import multiprocessing as mp
 from argparse import Namespace
 from typing import List, Tuple, Union
+
 import numpy as np
 
+from CPPL_class.cppl_base import CPPLBase
+from preselection import UCB
 from utils import random_genes
 from utils.genetic_parameterization import evolution_and_fitness
 from utils.log_params_utils import log_space_convert
 from utils.utility_functions import join_feature_map, set_genes
-
-from CPPL_class.cppl_base import CPPLBase
-from preselection import UCB
 
 
 class CPPLConfiguration:
@@ -21,10 +21,6 @@ class CPPLConfiguration:
     ----------
     args : Namespace
         The arguments of the algorithm given by user.
-    logger_name : str, optional
-        Logger name, by default "CPPLConfiguration"
-    logger_level : int, optional
-        Level of the logger, by default logging.INFO
 
     Attributes
     ----------
@@ -36,7 +32,7 @@ class CPPLConfiguration:
         Number of contenders or arms in the contender pool, by default None.
     params : np.ndarray
         A parameter array of all the contenders in the pool, by default None.
-    pca_context_features : np.ndarray
+    pca_instance_features : np.ndarray
         A numpy array of transformed context features, by default None.
     discard: List
         A list of discarded contenders, by default None.
@@ -55,18 +51,13 @@ class CPPLConfiguration:
     def __init__(
         self,
         args: Namespace,
-        logger_name: str = "CPPLConfiguration",
-        logger_level: int = logging.INFO,
     ):
         self.base = CPPLBase(args=args)  # Create a base class object.
-        self.logger = logging.getLogger(logger_name)
-        self.logger.setLevel(logger_level)
-
         self.filename = None
         self.async_results = []
         self.params: np.ndarray = self.base.get_parameterizations()
         self.n_arms: int = self.params.shape[0]
-        self.pca_context_features = None
+        self.pca_instance_features = None
         self.discard: List = []
         self.subset_contender_list_str: List[str] = None
         self.new_candidates_size = 1000
@@ -94,12 +85,12 @@ class CPPLConfiguration:
             A list of discarded contenders.
         """
         self.filename = filename
-        self.pca_context_features = self.base.get_pca_context_features(
-            filename=self.filename
+        self.pca_instance_features = self.base.get_pca_instance_features(
+            problem_instance_name=self.filename
         )
         context_vector_dimension = len(self.base.theta_bar)
         context_matrix = self.base.get_context_feature_matrix(
-            features=self.pca_context_features, params=self.params, n_arms=self.n_arms
+            features=self.pca_instance_features, params=self.params, n_arms=self.n_arms
         )
 
         self.skill_vector = self.base.get_skill_vector(
@@ -232,7 +223,7 @@ class CPPLConfiguration:
         for index in range(new_candidates_transformed.shape[0]):
             context_vector = join_feature_map(
                 x=new_candidates_transformed[index],
-                y=self.pca_context_features[0],
+                y=self.pca_instance_features[0],
                 mode=self.base.joint_featured_map_mode,
             )
 
@@ -361,8 +352,11 @@ class CPPLConfiguration:
         """
         contender_list = []
 
-        _, _, _, _, _, skill_vector = self.base.get_context_feature_matrix(
-            filename=self.filename
+        context_matrix = self.base.get_context_feature_matrix(
+            features=self.pca_instance_features, params=self.params, n_arms=self.n_arms
+        )
+        skill_vector = self.base.get_skill_vector(
+            n_arms=self.n_arms, context_matrix=context_matrix
         )
 
         S_t = (-skill_vector).argsort()[0 : self.base.subset_size]

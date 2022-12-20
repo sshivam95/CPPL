@@ -1,9 +1,10 @@
 """Run ad-hoc experiments on the command line.
 
-Run ``python3 CPPL_test_run.py -to 300 -d problem_instance_directory -p pws -s solver_name``
+Run ``python3 CPPL_test_run.py -to 300 -d <problem_instance_directory> -p pws -s solver_name``
 """
 import argparse
 from time import time
+
 from CPPL_class.cppl_algo import CPPLAlgo
 from preselection import regret_minimizing_algorithm
 
@@ -170,20 +171,10 @@ def _main():
         help="""Set to true if only default parameterization should run""",
     )
 
-    ################## Preselection Arguments ##################
-    parser.add_argument(
-        "-a",
-        "--algorithms",
-        metavar="ClassName",
-        default=preselection_algorithm.keys(),
-        help=f"Algorithm for selecting the optimal interim subset. (default: {preselection_algorithm_choices})",
-        choices=preselection_algorithm.keys(),
-    )
-
-    args, unknown = parser.parse_known_args()
+    args, _ = parser.parse_known_args()
     cppl_run = CPPLAlgo(
         args=args
-    )  # TODO add an experiment script for running CPPL with different reselection bandits
+    )
     cppl_run.run()
 
 

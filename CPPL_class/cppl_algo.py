@@ -2,23 +2,18 @@
 import logging
 from argparse import Namespace
 
+from CPPL_class.cppl_configuration import CPPLConfiguration
 from tournament_classes.tournament import Tournament
 from utils.utility_functions import gradient
 
-from CPPL_class.cppl_configuration import CPPLConfiguration
-
 
 class CPPLAlgo(CPPLConfiguration):
-    """A CPPL class which represents the working of the CPPL algorithm.
+    """A CPPL algorithm class which represents the working of the CPPL algorithm in the framework.
 
     Parameters
     ----------
     args : Namespace
         The arguments of the algorithm given by user.
-    logger_name : str, optional
-        Logger name, by default "CPPLAlgo"
-    logger_level : int, optional
-        Level of the logger, by default logging.INFO
 
     Attributes
     ----------
@@ -29,12 +24,11 @@ class CPPLAlgo(CPPLConfiguration):
         the list contains the winner arm else the list is generated with arms having highest estimated latent utility. Note: this changes based on different
         preselection algorithms.
     context_matrix : np.ndarray
-        A context matrix where each element is associated with one of the different arms and contains
-        the properties of the arm itself as well as the context in which the arm needs to be chosen.
+        A context matrix where each element is made from the joint feature mapping of the parameters and the features of the problem instance.
     current_contender_names : List[str]
         List of the contenders in the current time step.
     current_pool : List[int]
-        The contenders pool after the update.
+        The parameter configuration pool of the solver after the update.
     solver : str
         Solver used to solve the instances.
     winners_list : List[int]
@@ -44,12 +38,8 @@ class CPPLAlgo(CPPLConfiguration):
     def __init__(
         self,
         args: Namespace,
-        logger_name: str = "CPPLAlgo",
-        logger_level: int = logging.INFO,
     ) -> None:
         super().__init__(args=args)
-        self.logger = logging.getLogger(logger_name)
-        self.logger.setLevel(logger_level)
 
         self.tournament: Tournament = None
         self.contender_list = None
@@ -70,10 +60,10 @@ class CPPLAlgo(CPPLConfiguration):
         if self.solver == "cadical" or self.solver == "glucose":
             file_ending = ".cnf"
         else:
-            file_ending = ".mps"
+            file_ending = ".mps" # extension of the instances used by CPLEX solver
 
         while not self.base.is_finished:
-            # Iterate through all Instances
+            # Iterate through all Instances from the problem instance list in the CPPL_Base class
             for filename in self.base.problem_instance_list:
 
                 dot = filename.rfind(".")
@@ -112,14 +102,14 @@ class CPPLAlgo(CPPLConfiguration):
                             self.base.time_step = 1
                         self.base.time_step += 1
                     else:
-                        self.contender_list = self._contender_list_including_generated()
+                        self.contender_list = self._contender_list_including_generated() # Create new parameterizations using the genetic approach if the winner is not known
 
                     self.tournament = Tournament(
                         cppl_base=self.base,
                         filepath=file_path,
                         contender_list=self.contender_list,
                     )
-                    self.tournament.run()
+                    self.tournament.run() # Run the selected parameterizations in parallel depending on the available CPU resources.
 
                     # Output Setting
                     if self.base.args.data == "y":
@@ -178,7 +168,6 @@ class CPPLAlgo(CPPLConfiguration):
             "Finished all instances!\n ",
             "#######################\n",
         )
-        print(f"Regret: {self.base.regret}")
 
     def update(self) -> None:
         """Update the contenders pool, winners list, gradient and mean estimated score parameters after solving a problem instance."""
@@ -196,16 +185,16 @@ class CPPLAlgo(CPPLConfiguration):
         self.contender_list = []
         for i in range(self.base.subset_size):
             self.contender_list.append(f"contender_{str(self.base.S_t[i])}")
-        self.base.Y_t = int(self.contender_list[self.tournament.winner[0]][10:])
+        self.base.Y_t = int(self.contender_list[self.tournament.winner[0]][10:]) # Get the winner contender after the tournament is run
         print(f"Winner is contender_{self.base.Y_t}")
-        self.winners_list.append(self.base.Y_t)  # Track winners
+        self.winners_list.append(self.base.Y_t)  # Track winners for each instance problem
 
         self.base.grad = gradient(
             theta=self.base.theta_hat,
             winner_arm=self.base.Y_t,
             subset_arms=self.base.S_t,
             context_matrix=self.context_matrix,
-        )
+        ) # Calculate the gradient using the stochastic gradient descent
 
         # Update theta_hat
         self.base.theta_hat = (

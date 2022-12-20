@@ -58,10 +58,9 @@ def get_all_min_and_max(solver_parameters: Dict) -> Union[List[int], List[int]]:
     return all_min, all_max
 
 
-# pylint: disable=too-many-nested-blocks,too-many-locals,too-many-branches,too-many-statements
 def get_genes_set(solver: str, solver_parameters: Dict = None) -> List[int]:
     """
-    Return the gene set for a particular solver.
+    Return the gene set (parameter set) for a particular solver.
 
 
     Parameters

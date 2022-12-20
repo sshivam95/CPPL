@@ -2,8 +2,9 @@ import logging
 from typing import List, Tuple, Union
 
 import numpy as np
-from CPPL_class.cppl_base import CPPLBase
 from scipy.linalg import sqrtm
+
+from CPPL_class.cppl_base import CPPLBase
 from utils.utility_functions import hessian
 
 
@@ -50,18 +51,12 @@ class UCB:
         context_vector_dimension: int,  # degree of freedom (len of theta_bar)
         n_arms: int,  # Number of parameters
         v_hat: np.ndarray,  # mean observed rewards
-        logger_name: str = "UCB",
-        logger_level: int = logging.INFO,
     ) -> None:
-
         self.base = cppl_base_object
         self.context_matrix = context_matrix
         self.context_vector_dimension = context_vector_dimension
         self.n_arms = n_arms
         self.v_hat = v_hat
-        self.logger = logging.getLogger(logger_name)
-        self.logger.setLevel(logger_level)
-
         self.S_t = self.base.S_t
         self.subset_size = self.base.subset_size
         self.gradient = self.base.grad
@@ -96,9 +91,6 @@ class UCB:
         """
         self.step()
         contender_list_str = self._update_contender_list_str()
-        self.base.regret[self.time_step] = self.compute_regret(
-            theta=self.theta_bar, context_matrix=self.context_matrix, S=self.S_t
-        )
         if self.initial_step:
             return self.S_t, contender_list_str, self.v_hat
         else:
@@ -192,35 +184,3 @@ class UCB:
         for i in range(self.subset_size):
             contender_list_str.append("contender_" + str(self.S_t[i]))
         return contender_list_str
-
-    def compute_regret(
-        self, theta: np.ndarray, context_matrix: np.ndarray, S: np.ndarray
-    ) -> float:
-        """Compute the regret.
-
-        Parameters
-        ----------
-        theta : np.ndarray
-            The score parameter of the arms.
-        context_matrix : np.ndarray
-            A context matrix where each element is a context vector for a arm. Each vector encodes features of the context in which a arm must be chosen.
-        S : np.ndarray
-            The subset of arms from the pool which contains `subset_size` arms with the highest upper bounds on the latent utility.
-
-        Returns
-        -------
-        float
-            The regret.
-        """
-        context_matrix = np.array(context_matrix)
-        # compute v^* of all arms
-        v = np.zeros(self.n_arms)
-        for i in range(self.n_arms):
-            v[i] = np.exp(np.dot(theta, context_matrix[i]))
-
-        # get best arm
-        best_arm = np.argmax(v)
-        if best_arm in S:
-            return 0
-        else:
-            return (v[best_arm] - np.max(v[S])) / v[best_arm]

@@ -18,10 +18,6 @@ class CPPLUtils:
         Solver used to solve the instances.
     solver_parameters : Dict
         The parameter set used by the solver.
-    logger_name : str, optional
-        Name of the logger, by default "CPPLUtils"
-    logger_level : int, optional
-        Level of the logger, by default logging.INFO
     """
 
     def __init__(
@@ -29,12 +25,7 @@ class CPPLUtils:
         pool: Dict[str, int],
         solver: str,
         solver_parameters: Dict,
-        logger_name: str = "CPPLUtils",
-        logger_level: int = logging.INFO,
     ) -> None:
-        self.logger = logging.getLogger(logger_name)
-        self.logger.setLevel(logger_level)
-
         self.pool = pool
         self.solver = solver
         self.solver_parameters = solver_parameters
