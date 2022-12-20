@@ -1,1 +1,0 @@
-['SWlin2006.15100.cnf', 'SWlin2006.15101.cnf', 'SWlin2006.15102.cnf', 'SWlin2006.15103.cnf', 'SWlin2006.15104.cnf', 'SWlin2006.15105.cnf', 'SWlin2006.15106.cnf', 'SWlin2006.15107.cnf']

@@ -3,15 +3,15 @@ import logging
 import multiprocessing as mp
 from argparse import Namespace
 from typing import List, Tuple, Union
-
 import numpy as np
-from preselection.algorithms.upper_confidence_bound import UCB
+
 from utils import random_genes
 from utils.genetic_parameterization import evolution_and_fitness
 from utils.log_params_utils import log_space_convert
 from utils.utility_functions import join_feature_map, set_genes
 
 from CPPL_class.cppl_base import CPPLBase
+from preselection import UCB
 
 
 class CPPLConfiguration:
