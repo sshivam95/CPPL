@@ -174,15 +174,22 @@ class CPPLConfiguration:
             "\n Generating new Parameterizations!",
             "\n *********************************\n",
         )
-        self.new_candidates_size = 1000  # generate with randomenss
-        random_parameters, _ = self.base.cppl_utils.read_parameters()
+        self.new_candidates_size = 1000  
+        
+        # generate with randomenss
+        # Get a random set of parameters from the solver's parameter set.
+        random_parameters, _ = self.base.cppl_utils.read_parameters() 
         random_parameters = np.asarray(random_parameters)
+        
+        # Convert the parameters to logarithmic space for better calculation
         random_parameters = log_space_convert(
             limit_number=self.base.parameter_limit,
             param_set=random_parameters,
             solver_parameter=self.base.solver_parameters,
         )
 
+        # Generate the parameters from the winning configuration of the previous preblem instance as the genes for the new one.
+        # However, they won't be exactly the same.
         self.best_candidate = log_space_convert(
             limit_number=self.base.parameter_limit,
             param_set=random_genes.get_one_hot_decoded_param_set(
@@ -195,6 +202,8 @@ class CPPLConfiguration:
             exp=True,
         )
 
+        # Generate the parameters from the second best configuration of the previous preblem instance for the new one.
+        # However, they won't be exactly the same.
         self.second_candidate = log_space_convert(
             limit_number=self.base.parameter_limit,
             param_set=random_genes.get_one_hot_decoded_param_set(
@@ -207,19 +216,24 @@ class CPPLConfiguration:
             exp=True,
         )
 
+        # Create the rest of the configurations using the genetic approach used in the literature.
         (
             new_candidates_transformed,
             new_candidates,
         ) = self._parallel_evolution_and_fitness()
 
+        # Normalize the new parameter features
         new_candidates_transformed = self.base.min_max_scalar.transform(
             new_candidates_transformed
         )
+        
+        # Apply PCA to the new parameter features
         new_candidates_transformed = self.base.pca_obj_params.transform(
             new_candidates_transformed
         )
         skill_vector_new_candidates = np.zeros(self.new_candidates_size)
 
+        # Create new skill vectors based on the joint feature map.
         for index in range(new_candidates_transformed.shape[0]):
             context_vector = join_feature_map(
                 x=new_candidates_transformed[index],
@@ -231,6 +245,7 @@ class CPPLConfiguration:
                 np.inner(self.base.theta_bar, context_vector)
             )
 
+        # Select the top newly generated configuration based on the skill vector to replace the discarded configurations.
         best_new_candidates_list = (-skill_vector_new_candidates).argsort()[
             0:discard_size
         ]
@@ -262,11 +277,11 @@ class CPPLConfiguration:
             )
             self.update_logs(winning_contender_index=self.discard[index], genes=genes)
 
+        # Update the configuration pool including the new configurations.
         new_contender_list = self._contender_list_including_generated()
 
         return new_contender_list
 
-    # TODO convert it into a class
     def _parallel_evolution_and_fitness(self) -> Tuple[List, List]:
         """Generate new parameters as contenders parallely through genetic engineering approach.
 
@@ -289,8 +304,11 @@ class CPPLConfiguration:
                 solver_parameters=self.base.solver_parameters,
             )
         )
+        
+        # Initialize new parameters
         new_candidates = np.zeros(shape=(new_candidates_size, params_length))
 
+        # Since the new configurations are generated parallely, we initialize the parallelisation parameters.
         last_step = new_candidates_size % self.base.subset_size
         new_candidates_size = new_candidates_size - last_step
         step_size = (new_candidates_size) / self.base.subset_size
@@ -303,6 +321,7 @@ class CPPLConfiguration:
         step = 0
         pool = mp.Pool(processes=self.base.subset_size)
 
+        # Generate the new configurations parallely.
         for index, _ in enumerate(all_steps):
             step += all_steps[index]
             pool.apply_async(
@@ -323,6 +342,7 @@ class CPPLConfiguration:
         new_candidates_transformed = []
         new_candidates = []
 
+        # Append the new configurations in a list and return them.
         for i, _ in enumerate(self.async_results):
             for j, _ in enumerate(self.async_results[i][0]):
                 new_candidates_transformed.append(self.async_results[i][0][j])
@@ -343,7 +363,7 @@ class CPPLConfiguration:
         self.async_results.append([new_candidates_transformed, new_candidates])
 
     def _contender_list_including_generated(self) -> List[str]:
-        """Returns contenders from the subset with newly generated one through genetic approach.
+        """Update the contender pool with newly generated one through genetic approach.
 
         Returns
         -------

@@ -65,7 +65,7 @@ def log_space_convert(
 
         return param_set
 
-    if exp:  # Question: What is exp? Use?
+    if exp:
 
         max_val_indices, min_val_indices = update_max_min_values(
             limit_number=limit_number,

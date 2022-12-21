@@ -6,16 +6,10 @@ import argparse
 from time import time
 
 from CPPL_class.cppl_algo import CPPLAlgo
-from preselection import regret_minimizing_algorithm
 
 
 def _main():
     parser = argparse.ArgumentParser(description="Start CPPL Tournament")
-    preselection_algorithm = {
-        algorithm.__name__: algorithm for algorithm in regret_minimizing_algorithm
-    }
-    preselection_algorithm_choices = " ".join(preselection_algorithm.keys())
-
     ################## CPPL Arguments ##################
     parser.add_argument(
         "-d",
@@ -172,9 +166,7 @@ def _main():
     )
 
     args, _ = parser.parse_known_args()
-    cppl_run = CPPLAlgo(
-        args=args
-    )
+    cppl_run = CPPLAlgo(args=args)
     cppl_run.run()
 
 

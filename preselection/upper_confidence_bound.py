@@ -48,9 +48,9 @@ class UCB:
         self,
         cppl_base_object: CPPLBase,
         context_matrix: np.ndarray,
-        context_vector_dimension: int,  # degree of freedom (len of theta_bar)
-        n_arms: int,  # Number of parameters
-        v_hat: np.ndarray,  # mean observed rewards
+        context_vector_dimension: int,
+        n_arms: int,
+        v_hat: np.ndarray,
     ) -> None:
         self.base = cppl_base_object
         self.context_matrix = context_matrix
@@ -98,11 +98,13 @@ class UCB:
 
     def step(self) -> None:
         """Run one step of the algorithm."""
-        print("Time step: ", self.time_step)
-        # print(f"Indices of non zero elements in Preference matrix/ Grad op sum: \n {np.nonzero(self.base.grad_op_sum)} \nSize of Grad op sum: {self.base.grad_op_sum.shape}")
+        
+        # If it is the first instance and the winner is not known.
         if self.time_step == 0:
             self.S_t = self.get_best_subset()
         else:
+            
+            # If there are enough instances solved (time step > 0), calculate the confidence bound.
             self.confidence_t = np.zeros(self.n_arms)
             hess = hessian(
                 theta=self.theta_bar,
@@ -112,8 +114,9 @@ class UCB:
             self.hess_sum += hess
             self.base.grad_op_sum += np.outer(
                 self.gradient, self.gradient
-            )  # Can be treated as the preference matrix
+            )
 
+            # Equation of confidence bound in section 5.3 of https://arxiv.org/pdf/2002.04275.pdf
             try:
                 V_hat = np.asarray((1 / self.time_step) * self.base.grad_op_sum).astype(
                     "float64"
@@ -130,7 +133,7 @@ class UCB:
                         2 * np.dot(self.theta_bar, self.context_matrix[i, :])
                     ) * np.dot(
                         self.context_matrix[i, :], self.context_matrix[i, :]
-                    )  # M_t ^(i) (theta)
+                    )
                     self.confidence_t[i] = self.omega * np.sqrt(
                         (
                             2 * np.log(self.time_step)
@@ -141,7 +144,7 @@ class UCB:
                             )
                         )
                         * np.linalg.norm(Sigma_hat_sqrt * M_i * Sigma_hat_sqrt, ord=2)
-                    )  # Equation of confidence bound in section 5.3 of https://arxiv.org/pdf/2002.04275.pdf
+                    )
                 self.S_t = self.get_best_subset(exception=False)
             except:
                 self.S_t = self.get_best_subset()

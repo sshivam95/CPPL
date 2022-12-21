@@ -45,7 +45,7 @@ def evolution_and_fitness(
         shape=(
             new_candidates_size,
             num_parameters,
-        )  # TODO: The second shape can be shanged to params_length after clearing the doubt.
+        )
     )
 
     for candidate in range(new_candidates_size):

@@ -11,7 +11,7 @@ from utils.utility_functions import get_solver_params
 
 def get_all_min_and_max(solver_parameters: Dict) -> Union[List[int], List[int]]:
     """
-    Get the minimum and maximum values from the parameters of the solver.
+    Get the minimum and maximum values from the category of parameters of the solver.
 
     Parameters
     ----------
@@ -240,8 +240,6 @@ def get_genes_set(solver: str, solver_parameters: Dict = None) -> List[int]:
 
     return genes
 
-
-# pylint: disable=bad-continuation,too-many-arguments,too-many-statements
 def get_log_distribution_params(
     default: int,
     parameter_index: int,
@@ -551,7 +549,7 @@ def get_one_hot_decoded_param_set(
         new_genes = []
         insert_count = 0
 
-        k = 0  # Length of the subset Line 9 CPPL
+        k = 0
         for key in param_value_dict:
             if param_value_dict[key] is None:
                 int_value = cat_int_values.pop(0)

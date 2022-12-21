@@ -578,7 +578,7 @@ class CPPLBase:
         return features
 
     def get_features(self, problem_instance_name: str) -> np.ndarray:
-        """Get normal features of the problem instance.
+        """Get normal features of the problem instance from the csv file.
 
         Parameters
         ----------
@@ -608,7 +608,7 @@ class CPPLBase:
         return_it: bool = False,
     ) -> Optional[List]:
         """
-        Set the parameters for the contenders, i.e., arms.
+        Set the parameter configuration for the contenders, i.e., arms.
 
         Parameters
         ----------
